@@ -5,16 +5,18 @@ This is `cinf` (short for container info), a command line tool to view namespace
 
 ## Install
 
+TBD.
 
 ## Use
 
+TBD.
 
 ## References
 
 Tooling:
 
 - [c9s/goprocinfo](https://github.com/c9s/goprocinfo)
-- [shirou/gopsutil/](https://github.com/shirou/gopsutil/)
+- [shirou/gopsutil](https://github.com/shirou/gopsutil/)
 - [yadutaf/ctop](https://github.com/yadutaf/ctop)
 
 Material:
