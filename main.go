@@ -45,28 +45,42 @@ func init() {
 	flag.Usage = func() {
 		fmt.Printf("Usage: %s [args]\n\n", os.Args[0])
 		fmt.Printf("Per default lists information on both namespaces and cgroups.\n")
-		fmt.Printf("Arguments:\n")
+		fmt.Println("Arguments:")
 		flag.PrintDefaults()
 	}
 	flag.Parse()
 }
 
 func listn() {
-	fmt.Print("namespaces:\n")
-	pids, err := procfs.ListPID("proc", 32768)
+	fmt.Println("namespaces:")
+
+	maxpid, err := procfs.ReadMaxPID("/proc/sys/kernel/pid_max")
 	if err != nil {
-		log.Fatal("Retrieving process IDs failed.")
+		log.Fatal("Retrieving max process ID failed.")
 	}
-	fmt.Printf("%v\n", pids)
+
+	pidlist, err := procfs.ListPID("/proc", maxpid)
+	if err != nil {
+		log.Fatal("Retrieving list of process IDs failed.")
+	}
+
+	for _, pid := range pidlist {
+		proc, err := procfs.ReadProcess(pid, "/proc/")
+		if err != nil {
+			fmt.Println(err)
+		} else {
+			fmt.Printf("%v", proc)
+		}
+	}
 }
 
 func listc() {
-	fmt.Print("cgroups:\n")
+	fmt.Println("cgroups:")
 }
 
 func list() {
 	if runtime.GOOS != "linux" {
-		fmt.Print("Sorry, this is a Linux-specific tool.\n")
+		fmt.Println("Sorry, this is a Linux-specific tool.")
 		os.Exit(1)
 	}
 
