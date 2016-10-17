@@ -3,10 +3,12 @@ package main
 import (
 	"flag"
 	"fmt"
-	procfs "github.com/c9s/goprocinfo/linux"
-	"log"
+	"io/ioutil"
 	"os"
+	"path/filepath"
 	"runtime"
+	"strconv"
+	"strings"
 )
 
 const (
@@ -23,7 +25,25 @@ const (
     \/__/        \/__/     \/__/        \/__/   
 `
 	VERSION = "0.1.0"
+	DEBUG   = false
 )
+
+type NSTYPE uint64
+
+const (
+	NS_MOUNT  NSTYPE = iota // CLONE_NEWNS, filesystem mount points
+	NS_UTS                  // CLONE_NEWUTS, nodename and NIS domain name
+	NS_IPC                  // CLONE_NEWIPC, interprocess communication
+	NS_PID                  // CLONE_NEWPID, process ID number space isolation
+	NS_NET                  // CLONE_NEWNET, network system resources
+	NS_USER                 // CLONE_NEWUSER, user and group ID number space isolation
+	NS_CGROUP               // CLONE_NEWCGROUP, cgroup root directory
+)
+
+type Namespace struct {
+	Type NSTYPE
+	Id   string
+}
 
 var (
 	lnamespaces bool
@@ -51,25 +71,39 @@ func init() {
 	flag.Parse()
 }
 
+func debug(m string) {
+	if DEBUG {
+		fmt.Printf("DEBUG: %s\n", m)
+	}
+}
+
+func resolve(namespace string, processID string) (*Namespace, error) {
+	nsfile := filepath.Join("/proc", processID, "ns", namespace)
+	debug(nsfile)
+	if content, err := os.Readlink(nsfile); err == nil {
+		debug(content)
+		nsnum := strings.Split(content, ":")[1]
+		nsnum = nsnum[1 : len(nsnum)-1]
+		ns := Namespace{}
+		ns.Type = NS_NET
+		ns.Id = string(nsnum)
+		return &ns, nil
+	} else {
+		return nil, err
+	}
+}
+
 func listn() {
 	fmt.Println("namespaces:")
 
-	maxpid, err := procfs.ReadMaxPID("/proc/sys/kernel/pid_max")
-	if err != nil {
-		log.Fatal("Retrieving max process ID failed.")
-	}
-
-	pidlist, err := procfs.ListPID("/proc", maxpid)
-	if err != nil {
-		log.Fatal("Retrieving list of process IDs failed.")
-	}
-
-	for _, pid := range pidlist {
-		proc, err := procfs.ReadProcess(pid, "/proc/")
-		if err != nil {
-			fmt.Println(err)
-		} else {
-			fmt.Printf("%v", proc)
+	files, _ := ioutil.ReadDir("/proc")
+	for _, f := range files {
+		if _, err := strconv.Atoi(f.Name()); err == nil {
+			if ns, e := resolve("net", f.Name()); e == nil {
+				fmt.Println(ns.Id)
+			} else {
+				fmt.Printf("Can't read namespace from process %s due to %s\n", f.Name(), e)
+			}
 		}
 	}
 }
