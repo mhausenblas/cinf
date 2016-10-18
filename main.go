@@ -25,19 +25,18 @@ const (
     \/__/        \/__/     \/__/        \/__/   
 `
 	VERSION = "0.1.0"
-	DEBUG   = false
 )
 
-type NSTYPE uint64
+type NSTYPE string
 
 const (
-	NS_MOUNT  NSTYPE = iota // CLONE_NEWNS, filesystem mount points
-	NS_UTS                  // CLONE_NEWUTS, nodename and NIS domain name
-	NS_IPC                  // CLONE_NEWIPC, interprocess communication
-	NS_PID                  // CLONE_NEWPID, process ID number space isolation
-	NS_NET                  // CLONE_NEWNET, network system resources
-	NS_USER                 // CLONE_NEWUSER, user and group ID number space isolation
-	NS_CGROUP               // CLONE_NEWCGROUP, cgroup root directory
+	NS_MOUNT  NSTYPE = "mnt"    // CLONE_NEWNS, filesystem mount points
+	NS_UTS    NSTYPE = "uts"    // CLONE_NEWUTS, nodename and NIS domain name
+	NS_IPC    NSTYPE = "ipc"    // CLONE_NEWIPC, interprocess communication
+	NS_PID    NSTYPE = "pid"    // CLONE_NEWPID, process ID number space isolation
+	NS_NET    NSTYPE = "net"    // CLONE_NEWNET, network system resources
+	NS_USER   NSTYPE = "user"   // CLONE_NEWUSER, user and group ID number space isolation
+	NS_CGROUP NSTYPE = "cgroup" // CLONE_NEWCGROUP, cgroup root directory
 )
 
 type Namespace struct {
@@ -54,8 +53,9 @@ type Process struct {
 }
 
 var (
+	DEBUG      bool
 	lversion   bool
-	namespaces map[Namespace]Process
+	namespaces map[Namespace][]Process
 )
 
 func debug(m string) {
@@ -80,31 +80,19 @@ func init() {
 	}
 	flag.Parse()
 
-	namespaces = make(map[Namespace]Process)
-}
-
-func (nstype NSTYPE) String() string {
-	switch nstype {
-	case NS_MOUNT:
-		return "mnt"
-	case NS_UTS:
-		return "uts"
-	case NS_IPC:
-		return "ipc"
-	case NS_PID:
-		return "pid"
-	case NS_NET:
-		return "net"
-	case NS_USER:
-		return "user"
-	case NS_CGROUP:
-		return "cgroup"
+	DEBUG = false
+	if envd := os.Getenv("DEBUG"); envd != "" {
+		if d, err := strconv.ParseBool(envd); err == nil {
+			DEBUG = d
+		}
 	}
-	return ""
+
+	namespaces = make(map[Namespace][]Process)
 }
 
-func resolve(nstype NSTYPE, pid uint64) (*Namespace, error) {
-	nsfile := filepath.Join("/proc", string(pid), "ns", string(nstype))
+func resolve(nstype NSTYPE, pid string) (*Namespace, error) {
+	debug("namespace type: " + string(nstype))
+	nsfile := filepath.Join("/proc", pid, "ns", string(nstype))
 	debug(nsfile)
 	if content, err := os.Readlink(nsfile); err == nil {
 		debug(content)
@@ -120,27 +108,31 @@ func resolve(nstype NSTYPE, pid uint64) (*Namespace, error) {
 	}
 }
 
-func status(pid uint64) (*Process, error) {
-	sfile := filepath.Join("/proc", string(pid), "status")
+func status(pid string) (*Process, error) {
+	sfile := filepath.Join("/proc", pid, "status")
+	debug("reading " + sfile)
 	if s, err := ioutil.ReadFile(sfile); err == nil {
 		p := Process{}
 		lines := strings.Split(string(s), "\n")
 		for _, l := range lines {
-			k, v := strings.Split(l, ":")[0], strings.Trim(strings.Split(l, ":")[1], " ")
-			switch k {
-			case "Pid":
-				ipid, _ := strconv.Atoi(v)
-				p.Pid = uint64(ipid)
-			case "PPid":
-				ippid, _ := strconv.Atoi(v)
-				p.PPid = uint64(ippid)
-			case "Name":
-				p.Name = v
-			case "State":
-				p.State = v
-			case "Threads":
-				it, _ := strconv.Atoi(v)
-				p.Threads = it
+			debug("status field " + l)
+			if l != "" {
+				k, v := strings.Split(l, ":")[0], strings.Trim(strings.Split(l, ":")[1], " ")
+				switch k {
+				case "Pid":
+					ipid, _ := strconv.Atoi(v)
+					p.Pid = uint64(ipid)
+				case "PPid":
+					ippid, _ := strconv.Atoi(v)
+					p.PPid = uint64(ippid)
+				case "Name":
+					p.Name = v
+				case "State":
+					p.State = v
+				case "Threads":
+					it, _ := strconv.Atoi(v)
+					p.Threads = it
+				}
 			}
 		}
 		return &p, nil
@@ -154,21 +146,30 @@ func list() {
 		fmt.Println("Sorry, this is a Linux-specific tool.")
 		os.Exit(1)
 	}
-	files, _ := ioutil.ReadDir("/proc")
-	for _, f := range files {
-		if pid, err := strconv.Atoi(f.Name()); err == nil {
-			if ns, e := resolve(NS_NET, uint64(pid)); e == nil {
-				fmt.Println(ns.Id)
-				p, _ := status(uint64(pid))
-				namespaces[*ns] = *p
-			} else {
-				fmt.Printf("Can't read namespace from process %s due to %s\n", f.Name(), e)
-			}
+	fn, _ := filepath.Glob("/proc/[0-9]*")
+	for _, f := range fn {
+		_, pid := filepath.Split(f)
+		debug(pid)
+		if ns, e := resolve(NS_NET, pid); e == nil {
+			p, _ := status(pid)
+			// if _, ok := namespaces[*ns]; ok { // we already have a process entry
+			namespaces[*ns] = append(namespaces[*ns], *p)
+			// } else { // init the process list
+			// namespaces[*ns]
+			// }
+		} else {
+			fmt.Printf("Can't read namespace from process %s due to %s\n", pid, e)
 		}
+	}
+	debug("\n\n=== SUMMARY")
+	for n, pl := range namespaces {
+		debug(fmt.Sprintf("namespace %s: %v\n", n.Id, pl))
+		fmt.Printf("%s (%d)\n", n.Id, len(pl))
 	}
 }
 
 func main() {
+	debug("=== SHOWING DEBUG MESSAGES ===")
 	if lversion {
 		about()
 		os.Exit(0)

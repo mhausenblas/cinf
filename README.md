@@ -44,9 +44,10 @@ Tooling and libs:
 
 ### Development
 
-Build local:
+Build and execute local:
 
     $ GOOS=linux go build
+    $ sudo DEBUG=true ./cinf
 
 Build via CI/CD: 
 
