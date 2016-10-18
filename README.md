@@ -4,16 +4,16 @@ This is `cinf`, short for container info, a command line tool to view namespaces
 
 ## Install
 
-From source:
+Simply download the Linux binary:
+
+    $ curl -s -L https://github.com/mhausenblas/cinf/releases/download/v0.1.0-alpha/cinf -o cinf
+    $ sudo mv cinf /usr/local/bin
+    $ sudo chmod +x /usr/local/bin/cinf
+
+Or build from source:
 
     $ go get github.com/mhausenblas/cinf
     $ GOOS=linux go build
-
-Or simply download the Linux binary:
-
-    $ curl -s https:// -o cinf
-    $ sudo mv cinf /usr/local/bin
-    $ sudo chmod +x /usr/local/bin/cinf
 
 ## Use
 
