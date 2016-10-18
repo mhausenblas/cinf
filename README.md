@@ -19,7 +19,7 @@ Or build from source:
 
 List information on all available namespaces:
 
-    $ cinf/cinf
+    $ sudo cinf
     
     NAMESPACE   TYPE  NPROCS  USER  OUSER
     
@@ -43,7 +43,7 @@ List information on all available namespaces:
 
 Dig into a specific namespace:
 
-    sudo cinf/cinf 4026532194
+    $ sudo cinf 4026532194
     
      PID    PPID   NAME   STATE         THREADS  CGROUPS
      
