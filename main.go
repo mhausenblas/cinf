@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	tw "github.com/olekukonko/tablewriter"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -55,6 +56,7 @@ type Process struct {
 var (
 	DEBUG      bool
 	lversion   bool
+	NS         []NSTYPE
 	namespaces map[Namespace][]Process
 )
 
@@ -86,7 +88,7 @@ func init() {
 			DEBUG = d
 		}
 	}
-
+	NS = []NSTYPE{NS_MOUNT, NS_UTS, NS_IPC, NS_PID, NS_NET, NS_USER, NS_CGROUP}
 	namespaces = make(map[Namespace][]Process)
 }
 
@@ -149,23 +151,34 @@ func list() {
 	fn, _ := filepath.Glob("/proc/[0-9]*")
 	for _, f := range fn {
 		_, pid := filepath.Split(f)
-		debug(pid)
-		if ns, e := resolve(NS_NET, pid); e == nil {
-			p, _ := status(pid)
-			// if _, ok := namespaces[*ns]; ok { // we already have a process entry
-			namespaces[*ns] = append(namespaces[*ns], *p)
-			// } else { // init the process list
-			// namespaces[*ns]
-			// }
-		} else {
-			fmt.Printf("Can't read namespace from process %s due to %s\n", pid, e)
+		debug("looking at process: " + pid)
+		for _, tns := range NS {
+			debug("for namespace: " + string(tns))
+			if ns, e := resolve(tns, pid); e == nil {
+				p, _ := status(pid)
+				namespaces[*ns] = append(namespaces[*ns], *p)
+			} else {
+				debug(fmt.Sprintf("%s of process %s", e, pid))
+			}
 		}
+
 	}
 	debug("\n\n=== SUMMARY")
+
+	ntable := tw.NewWriter(os.Stdout)
+	ntable.SetHeader([]string{"NAMESPACE", "TYPE", "NPROCS", "USER"})
+	ntable.SetCenterSeparator("")
+	ntable.SetColumnSeparator("")
+	ntable.SetRowSeparator("")
+	ntable.SetAlignment(tw.ALIGN_LEFT)
+	ntable.SetHeaderAlignment(tw.ALIGN_LEFT)
 	for n, pl := range namespaces {
 		debug(fmt.Sprintf("namespace %s: %v\n", n.Id, pl))
-		fmt.Printf("%s (%d)\n", n.Id, len(pl))
+		row := []string{}
+		row = []string{string(n.Id), string(n.Type), strconv.Itoa(len(pl)), "???"}
+		ntable.Append(row)
 	}
+	ntable.Render()
 }
 
 func main() {
