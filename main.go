@@ -45,11 +45,24 @@ type Namespace struct {
 	Id   string
 }
 
+type Process struct {
+	Pid     uint64
+	PPid    uint64
+	Name    string
+	State   string
+	Threads int
+}
+
 var (
-	lnamespaces bool
-	lcgroups    bool
-	lversion    bool
+	lversion   bool
+	namespaces map[Namespace]Process
 )
+
+func debug(m string) {
+	if DEBUG {
+		fmt.Printf("DEBUG: %s\n", m)
+	}
+}
 
 func about() {
 	fmt.Printf(BANNER)
@@ -58,34 +71,48 @@ func about() {
 }
 
 func init() {
-	flag.BoolVar(&lnamespaces, "namespaces", false, "List only namespaces-related information")
-	flag.BoolVar(&lcgroups, "cgroups", false, "List only cgroups-related information")
-	flag.BoolVar(&lversion, "version", false, "List info about cinf including version")
+	flag.BoolVar(&lversion, "version", false, "List info about cinf, including its version")
 
 	flag.Usage = func() {
 		fmt.Printf("Usage: %s [args]\n\n", os.Args[0])
-		fmt.Printf("Per default lists information on both namespaces and cgroups.\n")
 		fmt.Println("Arguments:")
 		flag.PrintDefaults()
 	}
 	flag.Parse()
+
+	namespaces = make(map[Namespace]Process)
 }
 
-func debug(m string) {
-	if DEBUG {
-		fmt.Printf("DEBUG: %s\n", m)
+func (nstype NSTYPE) String() string {
+	switch nstype {
+	case NS_MOUNT:
+		return "mnt"
+	case NS_UTS:
+		return "uts"
+	case NS_IPC:
+		return "ipc"
+	case NS_PID:
+		return "pid"
+	case NS_NET:
+		return "net"
+	case NS_USER:
+		return "user"
+	case NS_CGROUP:
+		return "cgroup"
 	}
+	return ""
 }
 
-func resolve(namespace string, processID string) (*Namespace, error) {
-	nsfile := filepath.Join("/proc", processID, "ns", namespace)
+func resolve(nstype NSTYPE, pid uint64) (*Namespace, error) {
+	nsfile := filepath.Join("/proc", string(pid), "ns", string(nstype))
 	debug(nsfile)
 	if content, err := os.Readlink(nsfile); err == nil {
 		debug(content)
+		// turn something like user:[4026531837] into 4026531837
 		nsnum := strings.Split(content, ":")[1]
 		nsnum = nsnum[1 : len(nsnum)-1]
 		ns := Namespace{}
-		ns.Type = NS_NET
+		ns.Type = nstype
 		ns.Id = string(nsnum)
 		return &ns, nil
 	} else {
@@ -93,23 +120,33 @@ func resolve(namespace string, processID string) (*Namespace, error) {
 	}
 }
 
-func listn() {
-	fmt.Println("namespaces:")
-
-	files, _ := ioutil.ReadDir("/proc")
-	for _, f := range files {
-		if _, err := strconv.Atoi(f.Name()); err == nil {
-			if ns, e := resolve("net", f.Name()); e == nil {
-				fmt.Println(ns.Id)
-			} else {
-				fmt.Printf("Can't read namespace from process %s due to %s\n", f.Name(), e)
+func status(pid uint64) (*Process, error) {
+	sfile := filepath.Join("/proc", string(pid), "status")
+	if s, err := ioutil.ReadFile(sfile); err == nil {
+		p := Process{}
+		lines := strings.Split(string(s), "\n")
+		for _, l := range lines {
+			k, v := strings.Split(l, ":")[0], strings.Trim(strings.Split(l, ":")[1], " ")
+			switch k {
+			case "Pid":
+				ipid, _ := strconv.Atoi(v)
+				p.Pid = uint64(ipid)
+			case "PPid":
+				ippid, _ := strconv.Atoi(v)
+				p.PPid = uint64(ippid)
+			case "Name":
+				p.Name = v
+			case "State":
+				p.State = v
+			case "Threads":
+				it, _ := strconv.Atoi(v)
+				p.Threads = it
 			}
 		}
+		return &p, nil
+	} else {
+		return nil, err
 	}
-}
-
-func listc() {
-	fmt.Println("cgroups:")
 }
 
 func list() {
@@ -117,17 +154,18 @@ func list() {
 		fmt.Println("Sorry, this is a Linux-specific tool.")
 		os.Exit(1)
 	}
-
-	if lnamespaces {
-		listn()
-		return
+	files, _ := ioutil.ReadDir("/proc")
+	for _, f := range files {
+		if pid, err := strconv.Atoi(f.Name()); err == nil {
+			if ns, e := resolve(NS_NET, uint64(pid)); e == nil {
+				fmt.Println(ns.Id)
+				p, _ := status(uint64(pid))
+				namespaces[*ns] = *p
+			} else {
+				fmt.Printf("Can't read namespace from process %s due to %s\n", f.Name(), e)
+			}
+		}
 	}
-	if lcgroups {
-		listc()
-		return
-	}
-	listn()
-	listc()
 }
 
 func main() {
