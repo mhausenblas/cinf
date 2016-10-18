@@ -46,17 +46,19 @@ type Namespace struct {
 }
 
 type Process struct {
-	Pid     uint64
-	PPid    uint64
+	Pid     string
+	PPid    string
 	Name    string
 	State   string
-	Threads int
+	Threads string
+	Cgroups string
 }
 
 var (
 	DEBUG      bool
-	lversion   bool
 	NS         []NSTYPE
+	lversion   bool
+	targetns   string
 	namespaces map[Namespace][]Process
 )
 
@@ -82,13 +84,18 @@ func init() {
 	}
 	flag.Parse()
 
+	if flag.NArg() == 1 { // we have a target namespace
+		targetns = flag.Args()[0]
+	}
+
 	DEBUG = false
 	if envd := os.Getenv("DEBUG"); envd != "" {
 		if d, err := strconv.ParseBool(envd); err == nil {
 			DEBUG = d
 		}
 	}
-	NS = []NSTYPE{NS_MOUNT, NS_UTS, NS_IPC, NS_PID, NS_NET, NS_USER, NS_CGROUP}
+	// note: cgroups are not included in the following:
+	NS = []NSTYPE{NS_MOUNT, NS_UTS, NS_IPC, NS_PID, NS_NET, NS_USER}
 	namespaces = make(map[Namespace][]Process)
 }
 
@@ -113,29 +120,32 @@ func resolve(nstype NSTYPE, pid string) (*Namespace, error) {
 func status(pid string) (*Process, error) {
 	sfile := filepath.Join("/proc", pid, "status")
 	debug("reading " + sfile)
+	// try to read out data about process status:
 	if s, err := ioutil.ReadFile(sfile); err == nil {
 		p := Process{}
 		lines := strings.Split(string(s), "\n")
 		for _, l := range lines {
 			debug("status field " + l)
 			if l != "" {
-				k, v := strings.Split(l, ":")[0], strings.Trim(strings.Split(l, ":")[1], " ")
+				k, v := strings.Split(l, ":")[0], strings.TrimSpace(strings.Split(l, ":")[1])
 				switch k {
 				case "Pid":
-					ipid, _ := strconv.Atoi(v)
-					p.Pid = uint64(ipid)
+					p.Pid = v
 				case "PPid":
-					ippid, _ := strconv.Atoi(v)
-					p.PPid = uint64(ippid)
+					p.PPid = v
 				case "Name":
 					p.Name = v
 				case "State":
 					p.State = v
 				case "Threads":
-					it, _ := strconv.Atoi(v)
-					p.Threads = it
+					p.Threads = v
 				}
 			}
+		}
+		// now try to read out data about cgroups:
+		cfile := filepath.Join("/proc", pid, "cgroup")
+		if cg, cerr := ioutil.ReadFile(cfile); cerr == nil {
+			p.Cgroups = string(cg)
 		}
 		return &p, nil
 	} else {
@@ -143,7 +153,7 @@ func status(pid string) (*Process, error) {
 	}
 }
 
-func list() {
+func gatherns() {
 	if runtime.GOOS != "linux" {
 		fmt.Println("Sorry, this is a Linux-specific tool.")
 		os.Exit(1)
@@ -161,10 +171,36 @@ func list() {
 				debug(fmt.Sprintf("%s of process %s", e, pid))
 			}
 		}
-
 	}
+}
+
+func showns(target string) {
+	ptable := tw.NewWriter(os.Stdout)
+	ptable.SetHeader([]string{"PID", "PPID", "NAME", "STATE", "THREADS", "CGROUPS"})
+	ptable.SetCenterSeparator("")
+	ptable.SetColumnSeparator("")
+	ptable.SetRowSeparator("")
+	ptable.SetAlignment(tw.ALIGN_LEFT)
+	ptable.SetHeaderAlignment(tw.ALIGN_LEFT)
 	debug("\n\n=== SUMMARY")
 
+	for _, tns := range NS {
+		debug("for namespace " + string(tns))
+		ns := Namespace{}
+		ns.Type = tns
+		ns.Id = target
+		pl := namespaces[ns]
+		for _, p := range pl {
+			debug(fmt.Sprintf("looking in namespace %s at process %d\n", tns, p.Pid))
+			row := []string{}
+			row = []string{string(p.Pid), string(p.PPid), p.Name, p.State, string(p.Threads), p.Cgroups}
+			ptable.Append(row)
+		}
+	}
+	ptable.Render()
+}
+
+func showallns() {
 	ntable := tw.NewWriter(os.Stdout)
 	ntable.SetHeader([]string{"NAMESPACE", "TYPE", "NPROCS", "USER"})
 	ntable.SetCenterSeparator("")
@@ -172,6 +208,7 @@ func list() {
 	ntable.SetRowSeparator("")
 	ntable.SetAlignment(tw.ALIGN_LEFT)
 	ntable.SetHeaderAlignment(tw.ALIGN_LEFT)
+	debug("\n\n=== SUMMARY")
 	for n, pl := range namespaces {
 		debug(fmt.Sprintf("namespace %s: %v\n", n.Id, pl))
 		row := []string{}
@@ -187,5 +224,10 @@ func main() {
 		about()
 		os.Exit(0)
 	}
-	list()
+	gatherns()
+	if targetns != "" { // target a specific namespace
+		showns(targetns)
+	} else {
+		showallns()
+	}
 }
