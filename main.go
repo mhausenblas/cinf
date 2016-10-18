@@ -52,6 +52,7 @@ type Process struct {
 	State   string
 	Threads string
 	Cgroups string
+	Uidmap  string
 }
 
 var (
@@ -142,6 +143,11 @@ func status(pid string) (*Process, error) {
 				}
 			}
 		}
+		// try to read out data about UIDs:
+		uidmapfile := filepath.Join("/proc", pid, "uid_map")
+		if uidmap, uerr := ioutil.ReadFile(uidmapfile); uerr == nil {
+			p.Uidmap = strings.TrimSpace(string(uidmap))
+		}
 		// now try to read out data about cgroups:
 		cfile := filepath.Join("/proc", pid, "cgroup")
 		if cg, cerr := ioutil.ReadFile(cfile); cerr == nil {
@@ -202,7 +208,7 @@ func showns(target string) {
 
 func showallns() {
 	ntable := tw.NewWriter(os.Stdout)
-	ntable.SetHeader([]string{"NAMESPACE", "TYPE", "NPROCS", "USER"})
+	ntable.SetHeader([]string{"NAMESPACE", "TYPE", "NPROCS", "USER", "OUSER"})
 	ntable.SetCenterSeparator("")
 	ntable.SetColumnSeparator("")
 	ntable.SetRowSeparator("")
@@ -212,7 +218,10 @@ func showallns() {
 	for n, pl := range namespaces {
 		debug(fmt.Sprintf("namespace %s: %v\n", n.Id, pl))
 		row := []string{}
-		row = []string{string(n.Id), string(n.Type), strconv.Itoa(len(pl)), "???"}
+		// note that the user listing here is really a short-cut, needs improvement:
+		user := strings.Fields(pl[0].Uidmap)[0]
+		ouser := strings.Fields(pl[0].Uidmap)[1]
+		row = []string{string(n.Id), string(n.Type), strconv.Itoa(len(pl)), user, ouser}
 		ntable.Append(row)
 	}
 	ntable.Render()
