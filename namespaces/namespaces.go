@@ -110,6 +110,8 @@ func status(pid string) (*Process, error) {
 			}
 		}
 		// try to read out data about UIDs:
+		// this should really be read from /proc/$PID/status
+		// Uid:	1000	1000	1000	1000
 		uidmapfile := filepath.Join("/proc", pid, "uid_map")
 		if uidmap, uerr := ioutil.ReadFile(uidmapfile); uerr == nil {
 			p.Uidmap = strings.TrimSpace(string(uidmap))
@@ -205,13 +207,30 @@ func Showall() {
 	for n, pl := range namespaces {
 		debug(fmt.Sprintf("namespace %s: %v\n", n.Id, pl))
 		row := []string{}
-		// note that the user listing here is really a short-cut, needs improvement:
-		user := strings.Fields(pl[0].Uidmap)[0]
-		ouser := strings.Fields(pl[0].Uidmap)[1]
+		// rendering user and outside user:
+		// picks UID of first process and indicates
+		// how many more there are, if any
+		user := ""
+		ouser := ""
+		uids := make(map[string]int)
+		ouids := make(map[string]int)
+		for _, p := range pl {
+			uids[string(p.Uidmap[0])]++
+			ouids[string(p.Uidmap[2])]++
+		}
+		for uid, uidcnt := range uids {
+			user += fmt.Sprintf("%s (%d)", uid, uidcnt)
+		}
+		for ouid, ouidcnt := range uids {
+			ouser += fmt.Sprintf("%s (%d)", ouid, ouidcnt)
+		}
+
+		// rendering process command line:
 		cmd := pl[0].Command
 		if len(cmd) > MAX_COMMAND_LEN {
 			cmd = cmd[:MAX_COMMAND_LEN]
 		}
+		// assembling one row (one namespace rendering)
 		row = []string{string(n.Id), string(n.Type), strconv.Itoa(len(pl)), user, ouser, cmd}
 		ntable.Append(row)
 	}
