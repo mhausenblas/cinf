@@ -175,7 +175,7 @@ func Gather() {
 //  namespaces.Show("4026532198")
 func Show(targetns string) {
 	ptable := tw.NewWriter(os.Stdout)
-	ptable.SetHeader([]string{"PID", "PPID", "NAME", "CMD", "THREADS", "CGROUPS", "STATE"})
+	ptable.SetHeader([]string{"PID", "PPID", "NAME", "CMD", "NTHREADS", "CGROUPS", "STATE"})
 	ptable.SetCenterSeparator("")
 	ptable.SetColumnSeparator("")
 	ptable.SetRowSeparator("")

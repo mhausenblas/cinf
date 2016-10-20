@@ -72,6 +72,23 @@ Dig into a specific namespace:
 
 Note that if you want to see detailed debug messages, you can do that via a `DEBUG` environment variable, like so: `sudo DEBUG=true cinf`.
 
+The meaning of the columns is as follows:
+
+- Overview:
+  - `NAMESPACE` … the namespace ID
+  - `TYPE` … the type of namespace, see also [explanation of the namespaces](#overview-on-linux-namespaces-and-cgroups) below
+  - `NPROCS` … number of processes in the namespace
+  - `USER` … user IDs in the namespace
+  - `CMD` … command line of the root process
+- Detailed namespace view:
+  - `PID` … process ID
+  - `PPID` … process ID of parent
+  - `NAME` … process name
+  - `CMD` … process command line
+  -  `NTHREADS`… number of threads
+  - `CGROUPS` … summary of the attached cgroups
+  - `STATE` … process state
+
 ### Walkthrough
 
 For above outcomes I've used the following setup:
