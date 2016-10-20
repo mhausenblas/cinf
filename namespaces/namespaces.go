@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"sort"
 	"strconv"
 	"strings"
 )
@@ -25,7 +26,7 @@ type Process struct {
 	State   string
 	Threads string
 	Cgroups string
-	Uidmap  string
+	Uids    string
 	Command string
 }
 
@@ -58,6 +59,15 @@ func init() {
 	NS = []NSTYPE{NS_MOUNT, NS_UTS, NS_IPC, NS_PID, NS_NET, NS_USER}
 	namespaces = make(map[Namespace][]Process)
 	MAX_COMMAND_LEN = 20
+}
+
+func contains(s int, slist []int) bool {
+	for _, b := range slist {
+		if b == s {
+			return true
+		}
+	}
+	return false
 }
 
 // resolve populates the specified namespace of a process.
@@ -94,7 +104,8 @@ func status(pid string) (*Process, error) {
 		for _, l := range lines {
 			debug("status field " + l)
 			if l != "" {
-				k, v := strings.Split(l, ":")[0], strings.TrimSpace(strings.Split(l, ":")[1])
+				k := strings.Split(l, ":")[0]
+				v := strings.TrimSpace(strings.Split(l, ":")[1])
 				switch k {
 				case "Pid":
 					p.Pid = v
@@ -106,15 +117,11 @@ func status(pid string) (*Process, error) {
 					p.State = v
 				case "Threads":
 					p.Threads = v
+				case "Uid":
+					// Uid:	1000	1000	1000	1000
+					p.Uids = v
 				}
 			}
-		}
-		// try to read out data about UIDs:
-		// this should really be read from /proc/$PID/status
-		// Uid:	1000	1000	1000	1000
-		uidmapfile := filepath.Join("/proc", pid, "uid_map")
-		if uidmap, uerr := ioutil.ReadFile(uidmapfile); uerr == nil {
-			p.Uidmap = strings.TrimSpace(string(uidmap))
 		}
 		// now try to read out data about cgroups:
 		cfile := filepath.Join("/proc", pid, "cgroup")
@@ -202,7 +209,7 @@ func Show(targetns string) {
 //  namespaces.Showall()
 func Showall() {
 	ntable := tw.NewWriter(os.Stdout)
-	ntable.SetHeader([]string{"NAMESPACE", "TYPE", "NPROCS", "USER", "OUSER", "CMD"})
+	ntable.SetHeader([]string{"NAMESPACE", "TYPE", "NPROCS", "USER", "CMD"})
 	ntable.SetCenterSeparator("")
 	ntable.SetColumnSeparator("")
 	ntable.SetRowSeparator("")
@@ -216,27 +223,29 @@ func Showall() {
 		// picks UID of first process and indicates
 		// how many more there are, if any
 		user := ""
-		ouser := ""
-		uids := make(map[string]int)
-		ouids := make(map[string]int)
+		suids := make([]int, 0)
 		for _, p := range pl {
-			uids[string(p.Uidmap[0])]++
-			ouids[string(p.Uidmap[2])]++
+			// using the first UID per process here for now
+			// (is there a case where they differ?):
+			uid, _ := strconv.Atoi(strings.Fields(p.Uids)[0])
+			if !contains(uid, suids) {
+				suids = append(suids, int(uid))
+			}
 		}
-		for uid, uidcnt := range uids {
-			user += fmt.Sprintf("%s (%d)", uid, uidcnt)
+		sort.Ints(suids)
+		for _, uid := range suids {
+			user += fmt.Sprintf("%d,", uid)
 		}
-		for ouid, ouidcnt := range uids {
-			ouser += fmt.Sprintf("%s (%d)", ouid, ouidcnt)
+		if strings.HasSuffix(user, ",") {
+			user = user[0 : len(user)-1]
 		}
-
 		// rendering process command line:
 		cmd := pl[0].Command
 		if len(cmd) > MAX_COMMAND_LEN {
 			cmd = cmd[:MAX_COMMAND_LEN]
 		}
 		// assembling one row (one namespace rendering)
-		row = []string{string(n.Id), string(n.Type), strconv.Itoa(len(pl)), user, ouser, cmd}
+		row = []string{string(n.Id), string(n.Type), strconv.Itoa(len(pl)), user, cmd}
 		ntable.Append(row)
 	}
 	ntable.Render()
