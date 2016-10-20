@@ -15,6 +15,7 @@ Or build from source:
     $ go get github.com/olekukonko/tablewriter
     $ go get github.com/mhausenblas/cinf
     $ GOOS=linux go build
+    $ godoc -http=":6060"
 
 ## Use
 

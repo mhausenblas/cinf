@@ -28,6 +28,7 @@ type Process struct {
 	Uidmap  string
 }
 
+// The supported namespaces
 const (
 	NS_MOUNT  NSTYPE = "mnt"    // CLONE_NEWNS, filesystem mount points
 	NS_UTS    NSTYPE = "uts"    // CLONE_NEWUTS, nodename and NIS domain name
@@ -56,6 +57,9 @@ func init() {
 	namespaces = make(map[Namespace][]Process)
 }
 
+// resolve populates the specified namespace of a process.
+// For example:
+//  namespaces.resolve(NS_USER, "1234")
 func resolve(nstype NSTYPE, pid string) (*Namespace, error) {
 	debug("namespace type: " + string(nstype))
 	nsfile := filepath.Join("/proc", pid, "ns", string(nstype))
@@ -74,6 +78,9 @@ func resolve(nstype NSTYPE, pid string) (*Namespace, error) {
 	}
 }
 
+// status reads out process information from /proc/$PID/status.
+// For example:
+//  namespaces.status("1234")
 func status(pid string) (*Process, error) {
 	sfile := filepath.Join("/proc", pid, "status")
 	debug("reading " + sfile)
@@ -119,6 +126,12 @@ func status(pid string) (*Process, error) {
 // PUBLIC API
 //
 
+// Gather reads out process-related info from /proc and fills the global
+// namespaces map with it. Note that only filenames that match the [0-9]* pattern
+// are considered here since those are the ones representing processes, with
+// the filename being the PID.
+// For example:
+//  namespaces.Gather()
 func Gather() {
 	if runtime.GOOS != "linux" {
 		fmt.Println("Sorry, this is a Linux-specific tool.")
@@ -140,6 +153,9 @@ func Gather() {
 	}
 }
 
+// Show displays details about a specific namespace.
+// For example:
+//  namespaces.Show("4026532198")
 func Show(targetns string) {
 	ptable := tw.NewWriter(os.Stdout)
 	ptable.SetHeader([]string{"PID", "PPID", "NAME", "STATE", "THREADS", "CGROUPS"})
@@ -166,6 +182,9 @@ func Show(targetns string) {
 	ptable.Render()
 }
 
+// Showall displays details about all active namespaces.
+// For example:
+//  namespaces.Showall()
 func Showall() {
 	ntable := tw.NewWriter(os.Stdout)
 	ntable.SetHeader([]string{"NAMESPACE", "TYPE", "NPROCS", "USER", "OUSER"})
