@@ -168,7 +168,7 @@ func Gather() {
 //  namespaces.Show("4026532198")
 func Show(targetns string) {
 	ptable := tw.NewWriter(os.Stdout)
-	ptable.SetHeader([]string{"PID", "PPID", "NAME", "STATE", "THREADS", "CGROUPS"})
+	ptable.SetHeader([]string{"PID", "PPID", "NAME", "CMD", "THREADS", "CGROUPS", "STATE"})
 	ptable.SetCenterSeparator("")
 	ptable.SetColumnSeparator("")
 	ptable.SetRowSeparator("")
@@ -185,7 +185,12 @@ func Show(targetns string) {
 		for _, p := range pl {
 			debug(fmt.Sprintf("looking in namespace %s at process %d\n", tns, p.Pid))
 			row := []string{}
-			row = []string{string(p.Pid), string(p.PPid), p.Name, p.State, string(p.Threads), p.Cgroups}
+			// rendering process command line:
+			cmd := p.Command
+			if len(cmd) > MAX_COMMAND_LEN {
+				cmd = cmd[:MAX_COMMAND_LEN]
+			}
+			row = []string{string(p.Pid), string(p.PPid), p.Name, cmd, string(p.Threads), p.Cgroups, p.State}
 			ptable.Append(row)
 		}
 	}
