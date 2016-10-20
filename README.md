@@ -23,52 +23,52 @@ List information on all available namespaces:
 
     $ sudo cinf
     
-    NAMESPACE   TYPE  NPROCS  USER  OUSER
-    
-    4026531840  mnt   96      0     0
-    4026531836  pid   97      0     0
-    4026532194  uts   2       0     0
-    4026532295  ipc   1       0     0
-    4026532198  net   2       0     0
-    4026532294  uts   1       0     0
-    4026531838  uts   97      0     0
-    4026532196  pid   2       0     0
-    4026531856  mnt   1       0     0
-    4026532296  pid   1       0     0
-    4026532298  net   1       0     0
-    4026531839  ipc   97      0     0
-    4026531956  net   97      0     0
-    4026531837  user  100     0     0
-    4026532193  mnt   2       0     0
-    4026532195  ipc   2       0     0
-    4026532293  mnt   1       0     0
-
-Dig into a specific namespace:
-
-    $ sudo cinf 4026532194
-    
-     PID    PPID   NAME   STATE         THREADS  CGROUPS
+     NAMESPACE   TYPE  NPROCS  USER                    CMD
      
-     13867  13850  nginx  S (sleeping)  1        11:hugetlb:/docker/2f86cbc34a4d823be149935fa9a6dc176d161cebc719c60c7f95986c62ea7032
-                                                 10:perf_event:/docker/2f86cbc34a4d823be149935fa9a6dc176d161cebc719c60c7f95986c62ea7032
-                                                 9:blkio:/docker/2f86cbc34a4d823be149935fa9a6dc176d161cebc719c60c7f95986c62ea7032
-                                                 8:freezer:/docker/2f86cbc34a4d823be149935fa9a6dc176d161cebc719c60c7f95986c62ea7032
-                                                 7:devices:/docker/2f86cbc34a4d823be149935fa9a6dc176d161cebc719c60c7f95986c62ea7032
-                                                 6:memory:/docker/2f86cbc34a4d823be149935fa9a6dc176d161cebc719c60c7f95986c62ea7032
-                                                 5:cpuacct:/docker/2f86cbc34a4d823be149935fa9a6dc176d161cebc719c60c7f95986c62ea7032
-                                                 4:cpu:/docker/2f86cbc34a4d823be149935fa9a6dc176d161cebc719c60c7f95986c62ea7032
-                                                 3:cpuset:/docker/2f86cbc34a4d823be149935fa9a6dc176d161cebc719c60c7f95986c62ea7032
-                                                 2:name=systemd:/docker/2f86cbc34a4d823be149935fa9a6dc176d161cebc719c60c7f95986c62ea7032
-     13889  13867  nginx  S (sleeping)  1        11:hugetlb:/docker/2f86cbc34a4d823be149935fa9a6dc176d161cebc719c60c7f95986c62ea7032
-                                                 10:perf_event:/docker/2f86cbc34a4d823be149935fa9a6dc176d161cebc719c60c7f95986c62ea7032
-                                                 9:blkio:/docker/2f86cbc34a4d823be149935fa9a6dc176d161cebc719c60c7f95986c62ea7032
-                                                 8:freezer:/docker/2f86cbc34a4d823be149935fa9a6dc176d161cebc719c60c7f95986c62ea7032
-                                                 7:devices:/docker/2f86cbc34a4d823be149935fa9a6dc176d161cebc719c60c7f95986c62ea7032
-                                                 6:memory:/docker/2f86cbc34a4d823be149935fa9a6dc176d161cebc719c60c7f95986c62ea7032
-                                                 5:cpuacct:/docker/2f86cbc34a4d823be149935fa9a6dc176d161cebc719c60c7f95986c62ea7032
-                                                 4:cpu:/docker/2f86cbc34a4d823be149935fa9a6dc176d161cebc719c60c7f95986c62ea7032
-                                                 3:cpuset:/docker/2f86cbc34a4d823be149935fa9a6dc176d161cebc719c60c7f95986c62ea7032
-                                                 2:name=systemd:/docker/2f86cbc34a4d823be149935fa9a6dc176d161cebc719c60c7f95986c62ea7032
+     4026531856  mnt   1       0
+     4026532193  mnt   2       0,104                   nginx: master proces
+     4026532196  pid   2       0,104                   nginx: master proces
+     4026532198  net   2       0,104                   nginx: master proces
+     4026532296  pid   1       1000                    sleep10000
+     4026531839  ipc   95      0,101,102,106,1000      /sbin/init
+     4026531836  pid   95      0,101,102,106,1000      /sbin/init
+     4026532194  uts   2       0,104                   nginx: master proces
+     4026532195  ipc   2       0,104                   nginx: master proces
+     4026531837  user  98      0,101,102,104,106,1000  /sbin/init
+     4026532293  mnt   1       1000                    sleep10000
+     4026532294  uts   1       1000                    sleep10000
+     4026532298  net   1       1000                    sleep10000
+     4026531840  mnt   94      0,101,102,106,1000      /sbin/init
+     4026531838  uts   95      0,101,102,106,1000      /sbin/init
+     4026531956  net   95      0,101,102,106,1000      /sbin/init
+     4026532295  ipc   1       1000                    sleep10000
+ 
+And you can also obtain information about a specific namespace by providing its namespace ID as an argument to `cinf`:
+
+    $ sudo cinf 4026532196
+    
+     PID   PPID  NAME   CMD                   THREADS  CGROUPS                                                                                   STATE
+
+     2083  2061  nginx  nginx: master proces  1        11:name=systemd:/docker/249af13922da035fdd3644ed2e0fef4a1b2fd6a3a6af4b29758bd7f986f08878  S (sleeping)
+                                                       10:hugetlb:/docker/249af13922da035fdd3644ed2e0fef4a1b2fd6a3a6af4b29758bd7f986f08878
+                                                       9:perf_event:/docker/249af13922da035fdd3644ed2e0fef4a1b2fd6a3a6af4b29758bd7f986f08878
+                                                       8:blkio:/docker/249af13922da035fdd3644ed2e0fef4a1b2fd6a3a6af4b29758bd7f986f08878
+                                                       7:freezer:/docker/249af13922da035fdd3644ed2e0fef4a1b2fd6a3a6af4b29758bd7f986f08878
+                                                       6:devices:/docker/249af13922da035fdd3644ed2e0fef4a1b2fd6a3a6af4b29758bd7f986f08878
+                                                       5:memory:/docker/249af13922da035fdd3644ed2e0fef4a1b2fd6a3a6af4b29758bd7f986f08878
+                                                       4:cpuacct:/docker/249af13922da035fdd3644ed2e0fef4a1b2fd6a3a6af4b29758bd7f986f08878
+                                                       3:cpu:/docker/249af13922da035fdd3644ed2e0fef4a1b2fd6a3a6af4b29758bd7f986f08878
+                                                       2:cpuset:/docker/249af13922da035fdd3644ed2e0fef4a1b2fd6a3a6af4b29758bd7f986f08878
+     2107  2083  nginx  nginx: worker proces  1        11:name=systemd:/docker/249af13922da035fdd3644ed2e0fef4a1b2fd6a3a6af4b29758bd7f986f08878  S (sleeping)
+                                                       10:hugetlb:/docker/249af13922da035fdd3644ed2e0fef4a1b2fd6a3a6af4b29758bd7f986f08878
+                                                       9:perf_event:/docker/249af13922da035fdd3644ed2e0fef4a1b2fd6a3a6af4b29758bd7f986f08878
+                                                       8:blkio:/docker/249af13922da035fdd3644ed2e0fef4a1b2fd6a3a6af4b29758bd7f986f08878
+                                                       7:freezer:/docker/249af13922da035fdd3644ed2e0fef4a1b2fd6a3a6af4b29758bd7f986f08878
+                                                       6:devices:/docker/249af13922da035fdd3644ed2e0fef4a1b2fd6a3a6af4b29758bd7f986f08878
+                                                       5:memory:/docker/249af13922da035fdd3644ed2e0fef4a1b2fd6a3a6af4b29758bd7f986f08878
+                                                       4:cpuacct:/docker/249af13922da035fdd3644ed2e0fef4a1b2fd6a3a6af4b29758bd7f986f08878
+                                                       3:cpu:/docker/249af13922da035fdd3644ed2e0fef4a1b2fd6a3a6af4b29758bd7f986f08878
+                                                       2:cpuset:/docker/249af13922da035fdd3644ed2e0fef4a1b2fd6a3a6af4b29758bd7f986f08878
 
 Note that if you want to see detailed debug messages, you can do that via a `DEBUG` environment variable, like so: `sudo DEBUG=true cinf`.
 
