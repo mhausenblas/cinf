@@ -26,6 +26,7 @@ type Process struct {
 	Threads string
 	Cgroups string
 	Uidmap  string
+	Command string
 }
 
 // The supported namespaces
@@ -40,9 +41,10 @@ const (
 )
 
 var (
-	DEBUG      bool
-	NS         []NSTYPE
-	namespaces map[Namespace][]Process
+	DEBUG           bool
+	NS              []NSTYPE
+	namespaces      map[Namespace][]Process
+	MAX_COMMAND_LEN int
 )
 
 func debug(m string) {
@@ -55,6 +57,7 @@ func init() {
 	// note: cgroups are not included in the following:
 	NS = []NSTYPE{NS_MOUNT, NS_UTS, NS_IPC, NS_PID, NS_NET, NS_USER}
 	namespaces = make(map[Namespace][]Process)
+	MAX_COMMAND_LEN = 20
 }
 
 // resolve populates the specified namespace of a process.
@@ -115,6 +118,11 @@ func status(pid string) (*Process, error) {
 		cfile := filepath.Join("/proc", pid, "cgroup")
 		if cg, cerr := ioutil.ReadFile(cfile); cerr == nil {
 			p.Cgroups = string(cg)
+		}
+		// try to read out process' command:
+		cmdfile := filepath.Join("/proc", pid, "cmdline")
+		if cmd, cerr := ioutil.ReadFile(cmdfile); cerr == nil {
+			p.Command = strings.TrimSpace(string(cmd))
 		}
 		return &p, nil
 	} else {
@@ -187,7 +195,7 @@ func Show(targetns string) {
 //  namespaces.Showall()
 func Showall() {
 	ntable := tw.NewWriter(os.Stdout)
-	ntable.SetHeader([]string{"NAMESPACE", "TYPE", "NPROCS", "USER", "OUSER"})
+	ntable.SetHeader([]string{"NAMESPACE", "TYPE", "NPROCS", "USER", "OUSER", "CMD"})
 	ntable.SetCenterSeparator("")
 	ntable.SetColumnSeparator("")
 	ntable.SetRowSeparator("")
@@ -200,7 +208,11 @@ func Showall() {
 		// note that the user listing here is really a short-cut, needs improvement:
 		user := strings.Fields(pl[0].Uidmap)[0]
 		ouser := strings.Fields(pl[0].Uidmap)[1]
-		row = []string{string(n.Id), string(n.Type), strconv.Itoa(len(pl)), user, ouser}
+		cmd := pl[0].Command
+		if len(cmd) > MAX_COMMAND_LEN {
+			cmd = cmd[:MAX_COMMAND_LEN]
+		}
+		row = []string{string(n.Id), string(n.Type), strconv.Itoa(len(pl)), user, ouser, cmd}
 		ntable.Append(row)
 	}
 	ntable.Render()
