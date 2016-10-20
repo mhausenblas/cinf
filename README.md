@@ -6,7 +6,7 @@ This is `cinf`, short for container info, a command line tool to view namespaces
 
 Simply download the Linux binary:
 
-    $ curl -s -L https://github.com/mhausenblas/cinf/releases/download/v0.1.0-alpha/cinf -o cinf
+    $ curl -s -L https://github.com/mhausenblas/cinf/releases/download/v0.2.0-alpha/cinf -o cinf
     $ sudo mv cinf /usr/local/bin
     $ sudo chmod +x /usr/local/bin/cinf
 
