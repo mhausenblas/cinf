@@ -164,8 +164,9 @@ Note that the output format `cinf` uses is modelled after `lsns`, so kudos to Ka
 
 ### Reading material
 
-- [man lsns](http://man7.org/linux/man-pages/man8/lsns.8.html)
 - [man namespaces](http://man7.org/linux/man-pages/man7/namespaces.7.html)
+- [man cgroups](http://man7.org/linux/man-pages/man7/cgroups.7.html)
+- [man lsns](http://man7.org/linux/man-pages/man8/lsns.8.html)
 - [Hands on Linux sandbox with namespaces and cgroups](https://blogs.rdoproject.org/7761/hands-on-linux-sandbox-with-namespaces-and-cgroups), Tristan Cacqueray (2015)
 - [Namespaces in operation, part 1: namespaces overview](https://lwn.net/Articles/531114/), lwn.net (2013)
 - [Resource management: Linux kernel Namespaces and cgroups](http://www.haifux.org/lectures/299/netLec7.pdf), Rami Rosen (2013)
