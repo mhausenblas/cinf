@@ -45,6 +45,7 @@ var (
 	DEBUG           bool
 	NS              []NSTYPE
 	namespaces      map[Namespace][]Process
+	processes       map[string][]Namespace
 	MAX_COMMAND_LEN int
 )
 
@@ -57,7 +58,10 @@ func debug(m string) {
 func init() {
 	// note: cgroups are not included in the following:
 	NS = []NSTYPE{NS_MOUNT, NS_UTS, NS_IPC, NS_PID, NS_NET, NS_USER}
+	// for all default operations and lookups:
 	namespaces = make(map[Namespace][]Process)
+	// for lookups only (PID -> namespaces):
+	processes = make(map[string][]Namespace)
 	MAX_COMMAND_LEN = 20
 }
 
@@ -155,19 +159,43 @@ func Gather() {
 		os.Exit(1)
 	}
 	fn, _ := filepath.Glob("/proc/[0-9]*")
-	for _, f := range fn {
+	for _, f := range fn { // each file representing a process
 		_, pid := filepath.Split(f)
 		debug("looking at process: " + pid)
+		// establishing mappings:
 		for _, tns := range NS {
 			debug("for namespace: " + string(tns))
 			if ns, e := resolve(tns, pid); e == nil {
 				p, _ := status(pid)
+				// (namespace -> list of processes) mapping:
 				namespaces[*ns] = append(namespaces[*ns], *p)
+				// (process -> list of namespaces) mapping:
+				processes[pid] = append(processes[pid], *ns)
 			} else {
 				debug(fmt.Sprintf("%s of process %s", e, pid))
 			}
 		}
 	}
+}
+
+func Lookup(pid string) {
+	ptable := tw.NewWriter(os.Stdout)
+	ptable.SetHeader([]string{"NAMESPACE", "TYPE"})
+	ptable.SetCenterSeparator("")
+	ptable.SetColumnSeparator("")
+	ptable.SetRowSeparator("")
+	ptable.SetAlignment(tw.ALIGN_LEFT)
+	ptable.SetHeaderAlignment(tw.ALIGN_LEFT)
+	debug("\n\n=== SUMMARY")
+
+	for _, ns := range processes[pid] {
+		debug("for namespace " + ns.Id)
+		row := []string{}
+		row = []string{ns.Id, string(ns.Type)}
+		ptable.Append(row)
+	}
+	ptable.Render()
+
 }
 
 // Show displays details about a specific namespace.
@@ -219,25 +247,21 @@ func Showall() {
 	for n, pl := range namespaces {
 		debug(fmt.Sprintf("namespace %s: %v\n", n.Id, pl))
 		row := []string{}
-		// rendering user and outside user:
-		// picks UID of first process and indicates
-		// how many more there are, if any
-		user := ""
+		u := ""
 		suids := make([]int, 0)
 		for _, p := range pl {
-			// using the first UID per process here for now
-			// (is there a case where they differ?):
-			uid, _ := strconv.Atoi(strings.Fields(p.Uids)[0])
+			// using the effective UID here (which is the 2nd in the list):
+			uid, _ := strconv.Atoi(strings.Fields(p.Uids)[1])
 			if !contains(uid, suids) {
 				suids = append(suids, int(uid))
 			}
 		}
 		sort.Ints(suids)
 		for _, uid := range suids {
-			user += fmt.Sprintf("%d,", uid)
+			u += fmt.Sprintf("%d,", uid)
 		}
-		if strings.HasSuffix(user, ",") {
-			user = user[0 : len(user)-1]
+		if strings.HasSuffix(u, ",") {
+			u = u[0 : len(u)-1]
 		}
 		// rendering process command line:
 		cmd := pl[0].Command
@@ -245,7 +269,7 @@ func Showall() {
 			cmd = cmd[:MAX_COMMAND_LEN]
 		}
 		// assembling one row (one namespace rendering)
-		row = []string{string(n.Id), string(n.Type), strconv.Itoa(len(pl)), user, cmd}
+		row = []string{string(n.Id), string(n.Type), strconv.Itoa(len(pl)), u, cmd}
 		ntable.Append(row)
 	}
 	ntable.Render()

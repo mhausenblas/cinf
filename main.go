@@ -25,9 +25,10 @@ const (
 )
 
 var (
-	DEBUG    bool
-	lversion bool
-	targetns string
+	DEBUG     bool
+	version   bool
+	targetpid string
+	targetns  string
 )
 
 func debug(m string) {
@@ -43,7 +44,8 @@ func about() {
 }
 
 func init() {
-	flag.BoolVar(&lversion, "version", false, "List info about cinf, including its version")
+	flag.BoolVar(&version, "version", false, "List info about cinf, including its version")
+	flag.StringVar(&targetpid, "pid", "", "List namespaces details of process")
 
 	flag.Usage = func() {
 		fmt.Printf("Usage: %s [args]\n\n", os.Args[0])
@@ -67,14 +69,18 @@ func init() {
 func main() {
 	namespaces.DEBUG = DEBUG
 	debug("=== SHOWING DEBUG MESSAGES ===")
-	if lversion {
+	if version {
 		about()
 		os.Exit(0)
 	}
 	namespaces.Gather()
-	if targetns != "" { // target a specific namespace
-		namespaces.Show(targetns)
+	if targetpid != "" { // we have a -lookup flag
+		namespaces.Lookup(targetpid)
 	} else {
-		namespaces.Showall()
+		if targetns != "" { // target a specific namespace
+			namespaces.Show(targetns)
+		} else { // list all active namespaces
+			namespaces.Showall()
+		}
 	}
 }
