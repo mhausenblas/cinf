@@ -50,14 +50,6 @@ To list all available namespaces and a summary of how many processes are in them
      4026532395  ipc   1       0                         md5sum/dev/urandom
      4026532398  net   1       0                         md5sum/dev/urandom
 
-To dig into specific aspects of a namespace or cgroup, there are three arguments you can provide:
-
-- `-namespace` … List details about namespace with provided ID.
-- `-cgroup` … List details of a cgroup a process belongs to in format `CGROUP_HIERARCHY:PID`
-- `-pid` … List namespaces the process with provided process ID is in.
-
-Let's have a look at each of the options in the following.
-
 ### To dig into a namespace
 
 Assuming we're interested in more information on namespace `4026532398`, we would do the following:
@@ -122,13 +114,21 @@ It is also possible to list the namespaces a specific process is in, let's take 
 
 Note that if you want to see detailed debug messages, you can do that via a `DEBUG` environment variable, like so: `sudo DEBUG=true cinf`.
 
-The meaning of the columns is as follows:
+### CLI reference
+
+There are three arguments you can provide to `cinf`, to dig into specific aspects of a namespace, cgroup, or process:
+
+- `-namespace $NAMESPACE_ID` … List details about namespace with provided ID.
+- `-cgroup $CGROUP_HIERARCHY:$PID` … List details of a cgroup a process belongs to.
+- `-pid $PID` … List namespaces the process with provided process ID is in.
+
+The meaning of the output columns is as follows:
 
 - Overview (without arguments):
   - `NAMESPACE` … the namespace ID
   - `TYPE` … the type of namespace, see also [explanation of the namespaces](#overview-on-linux-namespaces-and-cgroups) below
   - `NPROCS` … number of processes in the namespace
-  - `USER` … user IDs in the namespace
+  - `USERS` … user IDs in the namespace
   - `CMD` … command line of the root process
 - Detailed namespace view (`-namespace`):
   - `PID` … process ID
