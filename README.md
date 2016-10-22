@@ -150,7 +150,7 @@ Above you can see the three Docker container running with PIDs `13889`, `17661`,
 - PID/`CLONE_NEWPID` (since Linux 2.6.24) via `/proc/$PID/status -> NSpid, NSpgid`: process ID number space isolation: PID inside/PID outside the namespace; PID namespaces can be nested
 - Network/`CLONE_NEWNET` (completed in Linux 2.6.29) via `ip netns list`, `/proc/net`, `/sys/class/net`: network system resources: network devices, IP addresses, IP routing tables, port numbers, etc.
 - User/`CLONE_NEWUSER` (completed in Linux 3.8) via `id`, `/proc/$PID/uid_map`, `/proc/$PID/gid_map`: user and group ID number space isolation. UID+GIDs inside/outside the namespace
-- Cgroup/`CLONE_NEWCGROUP` (since Linux 4.6) via `/proc/$PID/cgroup`: cgroups
+- Cgroup/`CLONE_NEWCGROUP` (since Linux 4.6) via `/proc/$PID/cgroup`, `/sys/fs/cgroup/`: cgroups
 - To list all namespaces of a process: `ls -l /proc/$PID/ns`
 
 ### Tooling and libs
@@ -166,6 +166,14 @@ Note that the output format `cinf` uses is modelled after `lsns`, so kudos to Ka
 
 - [man namespaces](http://man7.org/linux/man-pages/man7/namespaces.7.html)
 - [man cgroups](http://man7.org/linux/man-pages/man7/cgroups.7.html)
+  - [cpuset](https://www.kernel.org/doc/Documentation/cgroup-v1/cpusets.txt)
+  - [cpu](https://www.kernel.org/doc/Documentation/scheduler/sched-bwc.txt)
+  - [cpuacct](https://www.kernel.org/doc/Documentation/cgroup-v1/cpuacct.txt)
+  - [memory](https://www.kernel.org/doc/Documentation/cgroup-v1/memory.txt)
+  - [devices](https://www.kernel.org/doc/Documentation/cgroup-v1/devices.txt)
+  - [blkio](https://www.kernel.org/doc/Documentation/cgroup-v1/blkio-controller.txt)
+  - perf_event
+  - [net_cls](https://www.kernel.org/doc/Documentation/cgroup-v1/net_cls.txt)
 - [man lsns](http://man7.org/linux/man-pages/man8/lsns.8.html)
 - [Hands on Linux sandbox with namespaces and cgroups](https://blogs.rdoproject.org/7761/hands-on-linux-sandbox-with-namespaces-and-cgroups), Tristan Cacqueray (2015)
 - [Namespaces in operation, part 1: namespaces overview](https://lwn.net/Articles/531114/), lwn.net (2013)
