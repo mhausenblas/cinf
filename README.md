@@ -112,7 +112,7 @@ First, I launched three Docker containers (long-running, daemonized):
 
     $ sudo docker run -d nginx
     $ sudo docker run -m 100M -d busybox md5sum /dev/urandom
-    $ sudo docker run --user=1000 -d busybox sleep 1000
+    $ sudo docker run --user=1000 -d busybox sleep 10000
 
 Resulting in the following Docker process listing:
 

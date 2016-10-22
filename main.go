@@ -21,14 +21,15 @@ const (
    \::/  /       /:/  /   \:\__\       \:\__\    
     \/__/        \/__/     \/__/        \/__/   
 `
-	VERSION = "0.2.0"
+	VERSION = "0.3.0"
 )
 
 var (
 	DEBUG     bool
 	version   bool
-	targetpid string
 	targetns  string
+	targetpid string
+	targetcg  string
 )
 
 func debug(m string) {
@@ -44,8 +45,10 @@ func about() {
 }
 
 func init() {
-	flag.BoolVar(&version, "version", false, "List info about cinf, including its version")
-	flag.StringVar(&targetpid, "pid", "", "List namespaces details of process")
+	flag.BoolVar(&version, "version", false, "List info about cinf, including its version.")
+	flag.StringVar(&targetns, "ns", "", "List details about namespace with provided ID. You can get the namespace ID by running cinf without arguments.")
+	flag.StringVar(&targetpid, "pid", "", "List namespaces the process with provided process ID is in.")
+	flag.StringVar(&targetcg, "cg", "", "List details of a cgroup a process belongs to. Format is CGROUP_HIERARCHY:PID, for example 2:1000.")
 
 	flag.Usage = func() {
 		fmt.Printf("Usage: %s [args]\n\n", os.Args[0])
@@ -53,10 +56,6 @@ func init() {
 		flag.PrintDefaults()
 	}
 	flag.Parse()
-
-	if flag.NArg() == 1 { // we have a target namespace
-		targetns = flag.Args()[0]
-	}
 
 	DEBUG = false
 	if envd := os.Getenv("DEBUG"); envd != "" {
@@ -74,13 +73,15 @@ func main() {
 		os.Exit(0)
 	}
 	namespaces.Gather()
-	if targetpid != "" { // we have a -lookup flag
-		namespaces.Lookup(targetpid)
-	} else {
-		if targetns != "" { // target a specific namespace
-			namespaces.Show(targetns)
-		} else { // list all active namespaces
-			namespaces.Showall()
-		}
+
+	switch {
+	case targetns != "": // we have a -ns flag
+		namespaces.LookupNS(targetns)
+	case targetpid != "": // we have a -pid flag
+		namespaces.LookupPID(targetpid)
+	case targetcg != "": // we have a -cg flag
+		namespaces.LookupCG(targetcg)
+	default: // list all active namespaces
+		namespaces.Showall()
 	}
 }

@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"regexp"
 	"runtime"
 	"sort"
 	"strconv"
@@ -178,7 +179,42 @@ func Gather() {
 	}
 }
 
-func Lookup(pid string) {
+func ListCGs() {
+
+}
+
+// LookupCG displays details about a cgroup a process belongs to.
+// Note that cgofp is expected to be in the format CGROUP_HIERARCHY:PID
+// with allowed values for CGROUP_HIERARCHY being the cgroups v1 hierarchy
+// values as found in /proc/groups - for more infos see also
+// http://man7.org/linux/man-pages/man7/cgroups.7.html
+// For example:
+//  namespaces.LookupCG("2:1000")
+func LookupCG(cgofp string) {
+	rp := regexp.MustCompile("([0-9])+:([0-9])+")
+	if rp.MatchString(cgofp) {
+		ptable := tw.NewWriter(os.Stdout)
+		ptable.SetHeader([]string{"CONTROLFILE", "VALUE"})
+		ptable.SetCenterSeparator("")
+		ptable.SetColumnSeparator("")
+		ptable.SetRowSeparator("")
+		ptable.SetAlignment(tw.ALIGN_LEFT)
+		ptable.SetHeaderAlignment(tw.ALIGN_LEFT)
+		debug("\n\n=== SUMMARY")
+		cg := strings.Split(cgofp, ":")[0]
+		pid := strings.Split(cgofp, ":")[1]
+		fmt.Printf("Looking up cgroup %s of process %s", cg, pid)
+		ptable.Render()
+	} else {
+		fmt.Println("Provided argument is not in expected format. It should be CGROUP_HIERARCHY:PID.")
+		fmt.Println("For example: 2:1000 to list details of cgroup with hierarchy ID 2 the process with PID 1000 belongs to.")
+	}
+}
+
+// LookupPID displays the namespaces a process is in.
+// For example:
+//  namespaces.LookupPID("1000")
+func LookupPID(pid string) {
 	ptable := tw.NewWriter(os.Stdout)
 	ptable.SetHeader([]string{"NAMESPACE", "TYPE"})
 	ptable.SetCenterSeparator("")
@@ -198,10 +234,10 @@ func Lookup(pid string) {
 
 }
 
-// Show displays details about a specific namespace.
+// LookupNS displays details about a specific namespace.
 // For example:
-//  namespaces.Show("4026532198")
-func Show(targetns string) {
+//  namespaces.LookupNS("4026532198")
+func LookupNS(targetns string) {
 	ptable := tw.NewWriter(os.Stdout)
 	ptable.SetHeader([]string{"PID", "PPID", "NAME", "CMD", "NTHREADS", "CGROUPS", "STATE"})
 	ptable.SetCenterSeparator("")
