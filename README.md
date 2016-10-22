@@ -2,6 +2,16 @@
 
 This is `cinf`, short for container info, a command line tool to view namespaces and cgroups, the stuff that makes up Linux containers such as Docker, rkt/appc, or OCI/runc. It might be useful for low-level container prodding, when you need to understand what's going on under the hood. Read more here: [Containers are a lie](https://medium.com/@mhausenblas/containers-are-a-lie-2521afda1f81) …
 
+Contents:
+
+- [Install](#install) `cinf`
+- [Use](#use) `cinf` to
+  - [see all namespaces](#to-see-all-namespaces)
+  - dig into a [namespace](#to-dig-into-a-namespace)
+  - dig into a [cgroup](#to-dig-into-a-cgroup)
+  - dig into a [process](#to-dig-into-a-process) 
+- [Background](#background) on namespaces and cgroups
+
 ## Install
 
 Simply download the Linux binary:
@@ -196,7 +206,7 @@ As well as (note: edited down to the important bits) the general Linux process l
 
 Above you can see the three Docker container running with PIDs `13889`, `17661`, and `18353`.
 
-## References
+## Background
 
 ### Overview on Linux namespaces and cgroups
 
