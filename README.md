@@ -62,7 +62,7 @@ Let's have a look at each of the options in the following.
 
 Assuming we're interested in more information on namespace `4026532398`, we would do the following:
 
-    $ sudo cinf -namespace 4026532398
+    $ sudo cinf --namespace 4026532398
     
      PID   PPID  NAME    CMD                 NTHREADS  CGROUPS                                                                                   STATE
      
