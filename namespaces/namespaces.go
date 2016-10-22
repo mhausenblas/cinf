@@ -1,6 +1,7 @@
 package namespaces
 
 import (
+	"errors"
 	"fmt"
 	tw "github.com/olekukonko/tablewriter"
 	"io/ioutil"
@@ -144,6 +145,42 @@ func status(pid string) (*Process, error) {
 	}
 }
 
+func usage(cg string, pid string) (map[string]string, error) {
+	base := "/sys/fs/cgroup/"
+	for _, ns := range processes[pid] { // looking up namespaces of process
+		debug("checking namespace " + ns.Id)
+		for _, p := range namespaces[ns] { // checking to find process details
+			debug("checking process " + p.Pid)
+			if pid == p.Pid {
+				cgroups := p.Cgroups
+				lines := strings.Split(cgroups, "\n")
+				for _, l := range lines {
+					debug("line " + l)
+					if l != "" {
+						chierarchy := strings.Split(l, ":")[0]
+						cname := strings.Split(l, ":")[1]
+						cpath := strings.Split(l, ":")[2]
+						if cg == chierarchy { // matches targeted cgroup
+							cdir := filepath.Join(base, cname, cpath)
+							cfiles, _ := ioutil.ReadDir(cdir)
+							cmap := make(map[string]string)
+							for _, f := range cfiles { // read out values per control file
+								cfname := filepath.Join(cdir, f.Name())
+								// note that in the following we're ignoring write-only files:
+								if cvalue, err := ioutil.ReadFile(cfname); err == nil {
+									cmap[f.Name()] = string(cvalue)
+								}
+							}
+							return cmap, nil
+						}
+					}
+				}
+			}
+		}
+	}
+	return nil, errors.New(fmt.Sprintf("No control files found for cgroup %s of process %s", cg, pid))
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 // PUBLIC API
 //
@@ -179,10 +216,6 @@ func Gather() {
 	}
 }
 
-func ListCGs() {
-
-}
-
 // LookupCG displays details about a cgroup a process belongs to.
 // Note that cgofp is expected to be in the format CGROUP_HIERARCHY:PID
 // with allowed values for CGROUP_HIERARCHY being the cgroups v1 hierarchy
@@ -192,19 +225,28 @@ func ListCGs() {
 //  namespaces.LookupCG("2:1000")
 func LookupCG(cgofp string) {
 	rp := regexp.MustCompile("([0-9])+:([0-9])+")
-	if rp.MatchString(cgofp) {
-		ptable := tw.NewWriter(os.Stdout)
-		ptable.SetHeader([]string{"CONTROLFILE", "VALUE"})
-		ptable.SetCenterSeparator("")
-		ptable.SetColumnSeparator("")
-		ptable.SetRowSeparator("")
-		ptable.SetAlignment(tw.ALIGN_LEFT)
-		ptable.SetHeaderAlignment(tw.ALIGN_LEFT)
-		debug("\n\n=== SUMMARY")
+	if rp.MatchString(cgofp) { // the provided argument matches the expected format
 		cg := strings.Split(cgofp, ":")[0]
 		pid := strings.Split(cgofp, ":")[1]
-		fmt.Printf("Looking up cgroup %s of process %s", cg, pid)
-		ptable.Render()
+		debug(fmt.Sprintf("Looking up cgroup %s of process %s", cg, pid))
+		if cm, err := usage(cg, pid); err == nil {
+			ptable := tw.NewWriter(os.Stdout)
+			ptable.SetHeader([]string{"CONTROLFILE", "VALUE"})
+			ptable.SetCenterSeparator("")
+			ptable.SetColumnSeparator("")
+			ptable.SetRowSeparator("")
+			ptable.SetAlignment(tw.ALIGN_LEFT)
+			ptable.SetHeaderAlignment(tw.ALIGN_LEFT)
+			debug("\n\n=== SUMMARY")
+			debug(fmt.Sprintf("control files: %v", cm))
+			for cf, v := range cm {
+				row := []string{cf, v}
+				ptable.Append(row)
+			}
+			ptable.Render()
+		} else {
+			fmt.Println(err)
+		}
 	} else {
 		fmt.Println("Provided argument is not in expected format. It should be CGROUP_HIERARCHY:PID.")
 		fmt.Println("For example: 2:1000 to list details of cgroup with hierarchy ID 2 the process with PID 1000 belongs to.")
@@ -226,8 +268,7 @@ func LookupPID(pid string) {
 
 	for _, ns := range processes[pid] {
 		debug("for namespace " + ns.Id)
-		row := []string{}
-		row = []string{ns.Id, string(ns.Type)}
+		row := []string{ns.Id, string(ns.Type)}
 		ptable.Append(row)
 	}
 	ptable.Render()
@@ -255,13 +296,12 @@ func LookupNS(targetns string) {
 		pl := namespaces[ns]
 		for _, p := range pl {
 			debug(fmt.Sprintf("looking in namespace %s at process %d\n", tns, p.Pid))
-			row := []string{}
 			// rendering process command line:
 			cmd := p.Command
 			if len(cmd) > MAX_COMMAND_LEN {
 				cmd = cmd[:MAX_COMMAND_LEN]
 			}
-			row = []string{string(p.Pid), string(p.PPid), p.Name, cmd, string(p.Threads), p.Cgroups, p.State}
+			row := []string{string(p.Pid), string(p.PPid), p.Name, cmd, string(p.Threads), p.Cgroups, p.State}
 			ptable.Append(row)
 		}
 	}
@@ -282,7 +322,6 @@ func Showall() {
 	debug("\n\n=== SUMMARY")
 	for n, pl := range namespaces {
 		debug(fmt.Sprintf("namespace %s: %v\n", n.Id, pl))
-		row := []string{}
 		u := ""
 		suids := make([]int, 0)
 		for _, p := range pl {
@@ -305,7 +344,7 @@ func Showall() {
 			cmd = cmd[:MAX_COMMAND_LEN]
 		}
 		// assembling one row (one namespace rendering)
-		row = []string{string(n.Id), string(n.Type), strconv.Itoa(len(pl)), u, cmd}
+		row := []string{string(n.Id), string(n.Type), strconv.Itoa(len(pl)), u, cmd}
 		ntable.Append(row)
 	}
 	ntable.Render()
