@@ -46,9 +46,9 @@ func about() {
 
 func init() {
 	flag.BoolVar(&version, "version", false, "List info about cinf, including its version.")
-	flag.StringVar(&targetns, "ns", "", "List details about namespace with provided ID. You can get the namespace ID by running cinf without arguments.")
+	flag.StringVar(&targetns, "namespace", "", "List details about namespace with provided ID. You can get the namespace ID by running cinf without arguments.")
 	flag.StringVar(&targetpid, "pid", "", "List namespaces the process with provided process ID is in.")
-	flag.StringVar(&targetcg, "cg", "", "List details of a cgroup a process belongs to. Format is CGROUP_HIERARCHY:PID, for example 2:1000.")
+	flag.StringVar(&targetcg, "cgroup", "", "List details of a cgroup a process belongs to. Format is CGROUP_HIERARCHY:PID, for example 2:1000.")
 
 	flag.Usage = func() {
 		fmt.Printf("Usage: %s [args]\n\n", os.Args[0])
@@ -75,11 +75,11 @@ func main() {
 	namespaces.Gather()
 
 	switch {
-	case targetns != "": // we have a -ns flag
+	case targetns != "": // we have a -namespace flag
 		namespaces.LookupNS(targetns)
 	case targetpid != "": // we have a -pid flag
 		namespaces.LookupPID(targetpid)
-	case targetcg != "": // we have a -cg flag
+	case targetcg != "": // we have a -cgroup flag
 		namespaces.LookupCG(targetcg)
 	default: // list all active namespaces
 		namespaces.Showall()

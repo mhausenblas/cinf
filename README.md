@@ -6,11 +6,11 @@ This is `cinf`, short for container info, a command line tool to view namespaces
 
 Simply download the Linux binary:
 
-    $ curl -s -L https://github.com/mhausenblas/cinf/releases/download/v0.2.0-alpha/cinf -o cinf
+    $ curl -s -L https://github.com/mhausenblas/cinf/releases/download/v0.3.0-alpha/cinf -o cinf
     $ sudo mv cinf /usr/local/bin
     $ sudo chmod +x /usr/local/bin/cinf
 
-Or build from source:
+Or build from source (note that you'll get the latest, experimental version via this method):
 
     $ go get github.com/olekukonko/tablewriter
     $ go get github.com/mhausenblas/cinf
@@ -19,68 +19,118 @@ Or build from source:
 
 ## Use
 
-List information on all available namespaces:
+### To see all namespaces
+
+To list all available namespaces and a summary of how many processes are in them along with the users and the top-level command line executed, simply do the following:
 
     $ sudo cinf
     
-     NAMESPACE   TYPE  NPROCS  USER                    CMD
+     NAMESPACE   TYPE  NPROCS  USER                      CMD
      
+     4026532295  ipc   1       1000                      sleep10000
+     4026532195  ipc   2       0,104                     nginx: master proces
+     4026532393  mnt   1       0                         md5sum/dev/urandom
+     4026531840  mnt   99      0,1,101,102,106,1000      /sbin/init
+     4026531839  ipc   100     0,1,101,102,106,1000      /sbin/init
+     4026531837  user  104     0,1,101,102,104,106,1000  /sbin/init
+     4026532293  mnt   1       1000                      sleep10000
+     4026532193  mnt   2       0,104                     nginx: master proces
+     4026532194  uts   2       0,104                     nginx: master proces
+     4026532396  pid   1       0                         md5sum/dev/urandom
+     4026531956  net   100     0,1,101,102,106,1000      /sbin/init
      4026531856  mnt   1       0
-     4026532193  mnt   2       0,104                   nginx: master proces
-     4026532196  pid   2       0,104                   nginx: master proces
-     4026532198  net   2       0,104                   nginx: master proces
-     4026532296  pid   1       1000                    sleep10000
-     4026531839  ipc   95      0,101,102,106,1000      /sbin/init
-     4026531836  pid   95      0,101,102,106,1000      /sbin/init
-     4026532194  uts   2       0,104                   nginx: master proces
-     4026532195  ipc   2       0,104                   nginx: master proces
-     4026531837  user  98      0,101,102,104,106,1000  /sbin/init
-     4026532293  mnt   1       1000                    sleep10000
-     4026532294  uts   1       1000                    sleep10000
-     4026532298  net   1       1000                    sleep10000
-     4026531840  mnt   94      0,101,102,106,1000      /sbin/init
-     4026531838  uts   95      0,101,102,106,1000      /sbin/init
-     4026531956  net   95      0,101,102,106,1000      /sbin/init
-     4026532295  ipc   1       1000                    sleep10000
- 
-And you can also obtain information about a specific namespace by providing its namespace ID as an argument to `cinf`:
+     4026532196  pid   2       0,104                     nginx: master proces
+     4026532198  net   2       0,104                     nginx: master proces
+     4026531838  uts   100     0,1,101,102,106,1000      /sbin/init
+     4026531836  pid   100     0,1,101,102,106,1000      /sbin/init
+     4026532294  uts   1       1000                      sleep10000
+     4026532296  pid   1       1000                      sleep10000
+     4026532298  net   1       1000                      sleep10000
+     4026532394  uts   1       0                         md5sum/dev/urandom
+     4026532395  ipc   1       0                         md5sum/dev/urandom
+     4026532398  net   1       0                         md5sum/dev/urandom
 
-    $ sudo cinf 4026532196
+To dig into specific aspects of a namespace or cgroup, there are three arguments you can provide:
+
+- `-namespace` … List details about namespace with provided ID.
+- `-cgroup` … List details of a cgroup a process belongs to in format `CGROUP_HIERARCHY:PID`
+- `-pid` … List namespaces the process with provided process ID is in.
+
+Let's have a look at each of the options in the following.
+
+### To dig into a namespace
+
+Assuming we're interested in more information on namespace `4026532398`, we would do the following:
+
+    $ sudo cinf -namespace 4026532398
     
-     PID   PPID  NAME   CMD                   THREADS  CGROUPS                                                                                   STATE
+     PID   PPID  NAME    CMD                 NTHREADS  CGROUPS                                                                                   STATE
+     
+     9422  9405  md5sum  md5sum/dev/urandom  1         11:name=systemd:/docker/c35f489277eb6e13842a24ea217a64035ac33b281b127c218b04744155aede26  R (running)
+                                                       10:hugetlb:/docker/c35f489277eb6e13842a24ea217a64035ac33b281b127c218b04744155aede26
+                                                       9:perf_event:/docker/c35f489277eb6e13842a24ea217a64035ac33b281b127c218b04744155aede26
+                                                       8:blkio:/docker/c35f489277eb6e13842a24ea217a64035ac33b281b127c218b04744155aede26
+                                                       7:freezer:/docker/c35f489277eb6e13842a24ea217a64035ac33b281b127c218b04744155aede26
+                                                       6:devices:/docker/c35f489277eb6e13842a24ea217a64035ac33b281b127c218b04744155aede26
+                                                       5:memory:/docker/c35f489277eb6e13842a24ea217a64035ac33b281b127c218b04744155aede26
+                                                       4:cpuacct:/docker/c35f489277eb6e13842a24ea217a64035ac33b281b127c218b04744155aede26
+                                                       3:cpu:/docker/c35f489277eb6e13842a24ea217a64035ac33b281b127c218b04744155aede26
+                                                       2:cpuset:/docker/c35f489277eb6e13842a24ea217a64035ac33b281b127c218b04744155aede26
 
-     2083  2061  nginx  nginx: master proces  1        11:name=systemd:/docker/249af13922da035fdd3644ed2e0fef4a1b2fd6a3a6af4b29758bd7f986f08878  S (sleeping)
-                                                       10:hugetlb:/docker/249af13922da035fdd3644ed2e0fef4a1b2fd6a3a6af4b29758bd7f986f08878
-                                                       9:perf_event:/docker/249af13922da035fdd3644ed2e0fef4a1b2fd6a3a6af4b29758bd7f986f08878
-                                                       8:blkio:/docker/249af13922da035fdd3644ed2e0fef4a1b2fd6a3a6af4b29758bd7f986f08878
-                                                       7:freezer:/docker/249af13922da035fdd3644ed2e0fef4a1b2fd6a3a6af4b29758bd7f986f08878
-                                                       6:devices:/docker/249af13922da035fdd3644ed2e0fef4a1b2fd6a3a6af4b29758bd7f986f08878
-                                                       5:memory:/docker/249af13922da035fdd3644ed2e0fef4a1b2fd6a3a6af4b29758bd7f986f08878
-                                                       4:cpuacct:/docker/249af13922da035fdd3644ed2e0fef4a1b2fd6a3a6af4b29758bd7f986f08878
-                                                       3:cpu:/docker/249af13922da035fdd3644ed2e0fef4a1b2fd6a3a6af4b29758bd7f986f08878
-                                                       2:cpuset:/docker/249af13922da035fdd3644ed2e0fef4a1b2fd6a3a6af4b29758bd7f986f08878
-     2107  2083  nginx  nginx: worker proces  1        11:name=systemd:/docker/249af13922da035fdd3644ed2e0fef4a1b2fd6a3a6af4b29758bd7f986f08878  S (sleeping)
-                                                       10:hugetlb:/docker/249af13922da035fdd3644ed2e0fef4a1b2fd6a3a6af4b29758bd7f986f08878
-                                                       9:perf_event:/docker/249af13922da035fdd3644ed2e0fef4a1b2fd6a3a6af4b29758bd7f986f08878
-                                                       8:blkio:/docker/249af13922da035fdd3644ed2e0fef4a1b2fd6a3a6af4b29758bd7f986f08878
-                                                       7:freezer:/docker/249af13922da035fdd3644ed2e0fef4a1b2fd6a3a6af4b29758bd7f986f08878
-                                                       6:devices:/docker/249af13922da035fdd3644ed2e0fef4a1b2fd6a3a6af4b29758bd7f986f08878
-                                                       5:memory:/docker/249af13922da035fdd3644ed2e0fef4a1b2fd6a3a6af4b29758bd7f986f08878
-                                                       4:cpuacct:/docker/249af13922da035fdd3644ed2e0fef4a1b2fd6a3a6af4b29758bd7f986f08878
-                                                       3:cpu:/docker/249af13922da035fdd3644ed2e0fef4a1b2fd6a3a6af4b29758bd7f986f08878
-                                                       2:cpuset:/docker/249af13922da035fdd3644ed2e0fef4a1b2fd6a3a6af4b29758bd7f986f08878
+### To dig into a cgroup
+
+Using namespace `4026532398` from the previous section as starting point, we could now look up the concrete resource consumption of a process in the context of a cgroup. So we take the process with PID `9422` and say we want to verify if the memory limit we set (`-m 100M`, see below) is indeed in place, that is, we're using cgroup hierarchy ID `5` (note that the following output has been edited down to the interesting bits):
+
+    $ sudo cinf --cgroup 5:9422
+    
+     CONTROLFILE                         VALUE
+     
+     cgroup.clone_children               0
+     memory.failcnt                      0
+     memory.max_usage_in_bytes           1060864
+     memory.move_charge_at_immigrate     0
+     notify_on_release                   0
+     memory.kmem.tcp.usage_in_bytes      0
+     memory.usage_in_bytes               1019904
+     memory.use_hierarchy                0
+     cgroup.procs                        9422
+     memory.kmem.limit_in_bytes          18446744073709551615
+     memory.kmem.max_usage_in_bytes      245760
+     memory.kmem.tcp.limit_in_bytes      18446744073709551615
+     memory.kmem.tcp.max_usage_in_bytes  0
+     tasks                               9422
+     memory.limit_in_bytes               104857600
+     memory.kmem.tcp.failcnt             0
+     memory.oom_control                  oom_kill_disable 0 under_oom 0
+
+Above we can see the maximum memory usage of this Docker container (around 1MB, from `memory.max_usage_in_bytes`) as well as that the limit we asked for is indeed in place (see `memory.limit_in_bytes`).
+
+### To dig into a process
+
+It is also possible to list the namespaces a specific process is in, let's take again the one with PID `9422` as an example:
+
+    $ sudo cinf --pid 9422
+    
+     NAMESPACE   TYPE
+     
+     4026532393  mnt
+     4026532394  uts
+     4026532395  ipc
+     4026532396  pid
+     4026532398  net
+     4026531837  user
 
 Note that if you want to see detailed debug messages, you can do that via a `DEBUG` environment variable, like so: `sudo DEBUG=true cinf`.
 
 The meaning of the columns is as follows:
 
-- Overview:
+- Overview (without arguments):
   - `NAMESPACE` … the namespace ID
   - `TYPE` … the type of namespace, see also [explanation of the namespaces](#overview-on-linux-namespaces-and-cgroups) below
   - `NPROCS` … number of processes in the namespace
   - `USER` … user IDs in the namespace
   - `CMD` … command line of the root process
-- Detailed namespace view:
+- Detailed namespace view (`-namespace`):
   - `PID` … process ID
   - `PPID` … process ID of parent
   - `NAME` … process name
@@ -88,6 +138,12 @@ The meaning of the columns is as follows:
   -  `NTHREADS`… number of threads
   - `CGROUPS` … summary of the attached cgroups
   - `STATE` … process state
+- Detailed cgroups view (`-cgroup`):
+  - `CONTROLFILE` … the name of the control file, see also [cgroup man pages](#reading-material) below
+  - `VALUE` … the content of the control file
+- Detailed process view (`-pid`):
+  - `NAMESPACE` … the namespace ID
+  - `TYPE` … the type of namespace
 
 ### Walkthrough
 
