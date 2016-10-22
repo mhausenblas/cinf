@@ -128,9 +128,9 @@ Note that if you want to see detailed debug messages, you can do that via a `DEB
 
 There are three arguments you can provide to `cinf`, to dig into specific aspects of a namespace, cgroup, or process:
 
-- `-namespace $NAMESPACE_ID` … List details about namespace with provided ID.
-- `-cgroup $CGROUP_HIERARCHY:$PID` … List details of a cgroup a process belongs to.
-- `-pid $PID` … List namespaces the process with provided process ID is in.
+- `--namespace $NAMESPACE_ID` … List details about namespace with provided ID.
+- `--cgroup $CGROUP_HIERARCHY:$PID` … List details of a cgroup a process belongs to.
+- `--pid $PID` … List namespaces the process with provided process ID is in.
 
 The meaning of the output columns is as follows:
 
