@@ -3,6 +3,7 @@ package namespaces
 import (
 	"errors"
 	"fmt"
+	tm "github.com/buger/goterm"
 	tw "github.com/olekukonko/tablewriter"
 	"io/ioutil"
 	"os"
@@ -12,6 +13,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"time"
 )
 
 type NSTYPE string
@@ -148,8 +150,8 @@ func status(pid string) (*Process, error) {
 // usage reads out values of control files under /sys/fs/cgroup/
 // given a process pid and a cgroup hierarchy ID cg.
 // For example:
-//  namespaces.usage("5", "1234")
-func usage(cg string, pid string) (map[string]string, error) {
+//  namespaces.usage("1234", "5")
+func usage(pid string, cg string) (map[string]string, error) {
 	base := "/sys/fs/cgroup/"
 	for _, ns := range processes[pid] { // looking up namespaces of process
 		debug("checking namespace " + ns.Id)
@@ -193,7 +195,8 @@ func usage(cg string, pid string) (map[string]string, error) {
 // namespaces map with it. Note that only filenames that match the [0-9]* pattern
 // are considered here since those are the ones representing processes, with
 // the filename being the PID.
-// For example:
+//
+// Example:
 //  namespaces.Gather()
 func Gather() {
 	if runtime.GOOS != "linux" {
@@ -221,19 +224,20 @@ func Gather() {
 }
 
 // LookupCG displays details about a cgroup a process belongs to.
-// Note that cgofp is expected to be in the format CGROUP_HIERARCHY:PID
+// Note that cgofp is expected to be in the format PID:CGROUP_HIERARCHY
 // with allowed values for CGROUP_HIERARCHY being the cgroups v1 hierarchy
-// values as found in /proc/groups - for more infos see also
-// http://man7.org/linux/man-pages/man7/cgroups.7.html
-// For example:
-//  namespaces.LookupCG("2:1000")
-func LookupCG(cgofp string) {
+// values as found in /proc/groups - see http://man7.org/linux/man-pages/man7/cgroups.7.html
+// for more infos.
+//
+// Example:
+//  namespaces.LookupCG("1000:2")
+func LookupCG(cgspec string) {
 	rp := regexp.MustCompile("([0-9])+:([0-9])+")
-	if rp.MatchString(cgofp) { // the provided argument matches the expected format
-		cg := strings.Split(cgofp, ":")[0]
-		pid := strings.Split(cgofp, ":")[1]
+	if rp.MatchString(cgspec) { // the provided argument matches the expected format
+		pid := strings.Split(cgspec, ":")[0]
+		cg := strings.Split(cgspec, ":")[1]
 		debug(fmt.Sprintf("Looking up cgroup %s of process %s", cg, pid))
-		if cm, err := usage(cg, pid); err == nil {
+		if cm, err := usage(pid, cg); err == nil {
 			ptable := tw.NewWriter(os.Stdout)
 			ptable.SetHeader([]string{"CONTROLFILE", "VALUE"})
 			ptable.SetCenterSeparator("")
@@ -252,13 +256,14 @@ func LookupCG(cgofp string) {
 			fmt.Println(err)
 		}
 	} else {
-		fmt.Println("Provided argument is not in expected format. It should be CGROUP_HIERARCHY:PID.")
-		fmt.Println("For example: 2:1000 to list details of cgroup with hierarchy ID 2 the process with PID 1000 belongs to.")
+		fmt.Println("Provided argument is not in expected format. It should be PID:CGROUP_HIERARCHY")
+		fmt.Println("For example: 1000:2 lists details of cgroup with hierarchy ID 2 the process with PID 1000 belongs to.")
 	}
 }
 
 // LookupPID displays the namespaces a process is in.
-// For example:
+//
+// Example:
 //  namespaces.LookupPID("1000")
 func LookupPID(pid string) {
 	ptable := tw.NewWriter(os.Stdout)
@@ -269,18 +274,17 @@ func LookupPID(pid string) {
 	ptable.SetAlignment(tw.ALIGN_LEFT)
 	ptable.SetHeaderAlignment(tw.ALIGN_LEFT)
 	debug("\n\n=== SUMMARY")
-
 	for _, ns := range processes[pid] {
 		debug("for namespace " + ns.Id)
 		row := []string{ns.Id, string(ns.Type)}
 		ptable.Append(row)
 	}
 	ptable.Render()
-
 }
 
 // LookupNS displays details about a specific namespace.
-// For example:
+//
+// Example:
 //  namespaces.LookupNS("4026532198")
 func LookupNS(targetns string) {
 	ptable := tw.NewWriter(os.Stdout)
@@ -291,7 +295,6 @@ func LookupNS(targetns string) {
 	ptable.SetAlignment(tw.ALIGN_LEFT)
 	ptable.SetHeaderAlignment(tw.ALIGN_LEFT)
 	debug("\n\n=== SUMMARY")
-
 	for _, tns := range NS {
 		debug("for namespace " + string(tns))
 		ns := Namespace{}
@@ -312,12 +315,44 @@ func LookupNS(targetns string) {
 	ptable.Render()
 }
 
+func MonitorPID(monspec string) {
+	rp := regexp.MustCompile("([0-9])+:([0-9])+:*")
+	if rp.MatchString(monspec) { // the provided argument matches the expected format
+		pid := strings.Split(monspec, ":")[0]
+		cg := strings.Split(monspec, ":")[1]
+		colspec := strings.Split(monspec, ":")[2]
+		columns := strings.Split(colspec, ",")
+		debug(fmt.Sprintf("Monitoring process %s for cgroup %s with column spec %s", pid, cg, colspec))
+		tm.Clear()
+		for {
+			tm.MoveCursor(1, 1)
+			tm.Printf("cinf - monitoring process %s", pid)
+			tm.MoveCursor(2, 1)
+			if cm, err := usage(pid, cg); err == nil {
+				for cf, v := range cm {
+					for _, c := range columns {
+						if cf == c {
+							tm.Printf("%s = %v\n", cf, v)
+						}
+					}
+				}
+			}
+			tm.Flush()
+			time.Sleep(time.Second)
+		}
+	} else {
+		fmt.Println("Provided argument is not in expected format. It should be PID:CGROUP_HIERARCHY:COLSPEC.")
+		fmt.Println("For example: 1000:2:memory.usage_in_bytes lists details of cgroup with hierarchy ID 2 the process with PID 1000 belongs to using memory.usage_in_bytes.")
+	}
+
+}
+
 // Showall displays details about all active namespaces.
 // For example:
 //  namespaces.Showall()
 func Showall() {
 	ntable := tw.NewWriter(os.Stdout)
-	ntable.SetHeader([]string{"NAMESPACE", "TYPE", "NPROCS", "USER", "CMD"})
+	ntable.SetHeader([]string{"NAMESPACE", "TYPE", "NPROCS", "USERS", "CMD"})
 	ntable.SetCenterSeparator("")
 	ntable.SetColumnSeparator("")
 	ntable.SetRowSeparator("")

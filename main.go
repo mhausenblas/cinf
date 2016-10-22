@@ -29,7 +29,8 @@ var (
 	version   bool
 	targetns  string
 	targetpid string
-	targetcg  string
+	cgspec    string
+	monspec   string
 )
 
 func debug(m string) {
@@ -48,7 +49,8 @@ func init() {
 	flag.BoolVar(&version, "version", false, "List info about cinf, including its version.")
 	flag.StringVar(&targetns, "namespace", "", "List details about namespace with provided ID. You can get the namespace ID by running cinf without arguments.")
 	flag.StringVar(&targetpid, "pid", "", "List namespaces the process with provided process ID is in.")
-	flag.StringVar(&targetcg, "cgroup", "", "List details of a cgroup a process belongs to. Format is CGROUP_HIERARCHY:PID, for example 2:1000.")
+	flag.StringVar(&cgspec, "cgroup", "", "List details of a cgroup a process belongs to. Format is PID:CGROUP_HIERARCHY, for example 1000:2.")
+	flag.StringVar(&monspec, "mon", "", "Monitor process with provided process ID, cgroup, control files. Format is PID:CGROUP_HIERARCHY:CF1,CF2,… for example 1000:2:memory.usage_in_bytes")
 
 	flag.Usage = func() {
 		fmt.Printf("Usage: %s [args]\n\n", os.Args[0])
@@ -79,8 +81,10 @@ func main() {
 		namespaces.LookupNS(targetns)
 	case targetpid != "": // we have a -pid flag
 		namespaces.LookupPID(targetpid)
-	case targetcg != "": // we have a -cgroup flag
-		namespaces.LookupCG(targetcg)
+	case cgspec != "": // we have a -cgroup flag
+		namespaces.LookupCG(cgspec)
+	case monspec != "": // we have a -mon flag
+		namespaces.MonitorPID(monspec)
 	default: // list all active namespaces
 		namespaces.Showall()
 	}

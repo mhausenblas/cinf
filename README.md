@@ -27,6 +27,8 @@ Or build from source (note that you'll get the latest, experimental version via 
     $ GOOS=linux go build
     $ godoc -http=":6060"
 
+Note that the package docs are also available [online](https://godoc.org/github.com/mhausenblas/cinf/namespaces).
+
 ## Use
 
 ### To see all namespaces
@@ -176,7 +178,7 @@ For above outcomes I've used the following setup:
 
 First, I launched three Docker containers (long-running, daemonized):
 
-    $ sudo docker run -d nginx
+    $ sudo docker run -d -P nginx
     $ sudo docker run -m 100M -d busybox md5sum /dev/urandom
     $ sudo docker run --user=1000 -d busybox sleep 10000
 
@@ -243,5 +245,6 @@ Note that the output format `cinf` uses is modelled after `lsns`, so kudos to Ka
 - [man lsns](http://man7.org/linux/man-pages/man8/lsns.8.html)
 - [Hands on Linux sandbox with namespaces and cgroups](https://blogs.rdoproject.org/7761/hands-on-linux-sandbox-with-namespaces-and-cgroups), Tristan Cacqueray (2015)
 - [Namespaces in operation, part 1: namespaces overview](https://lwn.net/Articles/531114/), lwn.net (2013)
+- [Netdev 1.1 - Namespaces and CGroups, the basis of Linux containers](https://www.youtube.com/watch?v=zMJD8PJKoYQ), Rami Rosen, video (2016)
 - [Resource management: Linux kernel Namespaces and cgroups](http://www.haifux.org/lectures/299/netLec7.pdf), Rami Rosen (2013)
 - [THE `/proc` FILESYSTEM](https://www.mjmwired.net/kernel/Documentation/filesystems/proc.txt),  Terrehon Bowden et al (1999 - 2009)
