@@ -145,6 +145,10 @@ func status(pid string) (*Process, error) {
 	}
 }
 
+// usage reads out values of control files under /sys/fs/cgroup/
+// given a process pid and a cgroup hierarchy ID cg.
+// For example:
+//  namespaces.usage("5", "1234")
 func usage(cg string, pid string) (map[string]string, error) {
 	base := "/sys/fs/cgroup/"
 	for _, ns := range processes[pid] { // looking up namespaces of process
