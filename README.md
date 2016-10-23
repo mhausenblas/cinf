@@ -10,6 +10,7 @@ Contents:
   - dig into a [namespace](#to-dig-into-a-namespace)
   - dig into a [cgroup](#to-dig-into-a-cgroup)
   - dig into a [process](#to-dig-into-a-process) 
+  - [monitor a process](#to-monitor-a-process) 
 - [Background](#background) on namespaces and cgroups
 
 ## Install
@@ -93,7 +94,7 @@ The interactive, `top` like mode of `cinf` is as follows. Let's say we want to m
 
 Note that a more detailed usage description is available via the [walkthrough](walkthrough.md).
 
-### CLI reference
+## CLI reference
 
 There are three arguments you can provide to `cinf`, to dig into specific aspects of a namespace, cgroup, or process:
 
