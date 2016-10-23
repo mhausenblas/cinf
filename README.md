@@ -16,7 +16,7 @@ Contents:
 
 Simply download the Linux binary:
 
-    $ curl -s -L https://github.com/mhausenblas/cinf/releases/download/v0.3.0-alpha/cinf -o cinf
+    $ curl -s -L https://github.com/mhausenblas/cinf/releases/download/v0.4.0-alpha/cinf -o cinf
     $ sudo mv cinf /usr/local/bin
     $ sudo chmod +x /usr/local/bin/cinf
 
