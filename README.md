@@ -24,6 +24,7 @@ Or build from source (note that you'll get the latest, experimental version via 
 
     $ go get github.com/olekukonko/tablewriter
     $ go get github.com/mhausenblas/cinf
+    $ go get github.com/buger/goterm
     $ GOOS=linux go build
     $ godoc -http=":6060"
 
@@ -125,6 +126,21 @@ It is also possible to list the namespaces a specific process is in, let's take 
      4026531837  user
 
 Note that if you want to see detailed debug messages, you can do that via a `DEBUG` environment variable, like so: `sudo DEBUG=true cinf`.
+
+### To monitor a process
+
+NGINX:
+
+    sudo cinf/cinf --mon 12384:memory.usage_in_bytes,cpuacct.stat,blkio.throttle.io_serviced,blkio.throttle.io_service_bytes
+
+md5sum/dev/urandom:
+
+    sudo cinf/cinf --mon 9422:memory.limit_in_bytes,memory.max_usage_in_bytes,memory.usage_in_bytes,cpuacct.stat,cpu.shares
+
+sleep:
+
+    sudo cinf/cinf --mon 8363:memory.usage_in_bytes,cpuacct.stat
+
 
 ### CLI reference
 

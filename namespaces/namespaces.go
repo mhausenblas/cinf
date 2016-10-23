@@ -171,40 +171,49 @@ func status(pid string) (*Process, error) {
 	}
 }
 
+// lprocess returns the process with the pid provided.
+// For example:
+//  namespaces.lprocess("1234")
+func lprocess(pid string) *Process {
+	for _, ns := range processes[pid] { // looking up namespaces of process
+		debug("checking namespace " + ns.Id)
+		for _, p := range namespaces[ns] { // checking to find process details
+			debug("checking process " + p.Pid)
+			if pid == p.Pid {
+				return &p
+			}
+		}
+	}
+	return nil
+}
+
 // usage reads out values of control files under /sys/fs/cgroup/
 // given a process pid and a cgroup hierarchy ID cg.
 // For example:
 //  namespaces.usage("1234", "5")
 func usage(pid string, cg string) (map[string]string, error) {
 	base := "/sys/fs/cgroup/"
-	for _, ns := range processes[pid] { // looking up namespaces of process
-		debug("checking namespace " + ns.Id)
-		for _, p := range namespaces[ns] { // checking to find process details
-			debug("checking process " + p.Pid)
-			if pid == p.Pid {
-				cgroups := p.Cgroups
-				lines := strings.Split(cgroups, "\n")
-				for _, l := range lines {
-					debug("line " + l)
-					if l != "" {
-						chierarchy := strings.Split(l, ":")[0]
-						cname := strings.Split(l, ":")[1]
-						cpath := strings.Split(l, ":")[2]
-						if cg == chierarchy { // matches targeted cgroup
-							cdir := filepath.Join(base, cname, cpath)
-							cfiles, _ := ioutil.ReadDir(cdir)
-							cmap := make(map[string]string)
-							for _, f := range cfiles { // read out values per control file
-								cfname := filepath.Join(cdir, f.Name())
-								// note that in the following we're ignoring write-only files:
-								if cvalue, err := ioutil.ReadFile(cfname); err == nil {
-									cmap[f.Name()] = string(cvalue)
-								}
-							}
-							return cmap, nil
-						}
+	p := lprocess(pid)
+	cgroups := p.Cgroups
+	lines := strings.Split(cgroups, "\n")
+	for _, l := range lines {
+		debug("line " + l)
+		if l != "" {
+			chierarchy := strings.Split(l, ":")[0]
+			cname := strings.Split(l, ":")[1]
+			cpath := strings.Split(l, ":")[2]
+			if cg == chierarchy { // matches targeted cgroup
+				cdir := filepath.Join(base, cname, cpath)
+				cfiles, _ := ioutil.ReadDir(cdir)
+				cmap := make(map[string]string)
+				for _, f := range cfiles { // read out values per control file
+					cfname := filepath.Join(cdir, f.Name())
+					// note that in the following we're ignoring write-only files:
+					if cvalue, err := ioutil.ReadFile(cfname); err == nil {
+						cmap[f.Name()] = string(cvalue)
 					}
 				}
+				return cmap, nil
 			}
 		}
 	}
@@ -353,14 +362,19 @@ func MonitorPID(monspec string) {
 		pid := strings.Split(monspec, ":")[0]
 		colspec := strings.Split(monspec, ":")[1]
 		columns := strings.Split(colspec, ",")
-		cmd := "???"
+		p, _ := status(pid)
 		debug(fmt.Sprintf("Monitoring process %s with column spec %s", pid, colspec))
 		tm.Clear()
 		for {
 			tm.MoveCursor(1, 1)
-			tm.Printf("cinf - monitoring process PID: %s CMD: %s", pid, cmd)
+			nsl := processes[pid]
+			tm.Printf("cinf PID [%s] PPID [%s] CMD [%s]", p.Pid, p.PPid, p.Command)
 			tm.MoveCursor(2, 1)
-			row := 3
+			tm.Printf("     UIDS [%s] STATE [%s]", p.Uids, p.State)
+			tm.MoveCursor(3, 1)
+			tm.Printf("     NAMESPACES [%v]", nsl)
+			tm.MoveCursor(4, 1)
+			row := 5
 			for _, c := range columns { // each column (= CF) in the spec
 				// map CF -> cgroup -> cgroup hierarchy ID:
 				cgname := strings.Split(string(c), ".")[0]
@@ -369,7 +383,7 @@ func MonitorPID(monspec string) {
 					for cf, v := range cm {
 						if cf == c { // only show selected as per colspec
 							tm.MoveCursor(row, 1)
-							tm.Printf("%s = %v", cf, v)
+							tm.Printf("%s = %v", cf, strings.Replace(v, "\n", " ", -1))
 						}
 					}
 				}
