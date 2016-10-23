@@ -368,13 +368,16 @@ func MonitorPID(monspec string) {
 		for {
 			tm.MoveCursor(1, 1)
 			nsl := processes[pid]
-			tm.Printf("cinf PID [%s] PPID [%s] CMD [%s]", p.Pid, p.PPid, p.Command)
+			tm.Printf("cinf ")
+			tm.Printf(tm.Background(tm.Color(fmt.Sprintf("PID [%s] PPID [%s] CMD [%s]", p.Pid, p.PPid, p.Command), tm.BLACK), tm.WHITE))
 			tm.MoveCursor(2, 1)
 			tm.Printf("     UIDS [%s] STATE [%s]", p.Uids, p.State)
 			tm.MoveCursor(3, 1)
 			tm.Printf("     NAMESPACES [%v]", nsl)
-			tm.MoveCursor(4, 1)
-			row := 5
+			tm.MoveCursor(5, 1)
+			// formatting see https://golang.org/pkg/text/tabwriter/#Writer.Init
+			cftable := tm.NewTable(5, 10, 5, ' ', 0)
+			fmt.Fprintf(cftable, "CONTROLFILE\tVALUE\n")
 			for _, c := range columns { // each column (= CF) in the spec
 				// map CF -> cgroup -> cgroup hierarchy ID:
 				cgname := strings.Split(string(c), ".")[0]
@@ -382,13 +385,12 @@ func MonitorPID(monspec string) {
 				if cm, err := usage(pid, cgid); err == nil {
 					for cf, v := range cm {
 						if cf == c { // only show selected as per colspec
-							tm.MoveCursor(row, 1)
-							tm.Printf("%s = %v", cf, strings.Replace(v, "\n", " ", -1))
+							fmt.Fprintf(cftable, "%s\t%s\n", cf, strings.Replace(v, "\n", " ", -1))
 						}
 					}
 				}
-				row += 1
 			}
+			tm.Println(cftable)
 			tm.Flush()
 			time.Sleep(time.Second)
 		}
