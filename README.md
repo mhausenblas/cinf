@@ -10,7 +10,8 @@ Contents:
   - dig into a [namespace](#to-dig-into-a-namespace)
   - dig into a [cgroup](#to-dig-into-a-cgroup)
   - dig into a [process](#to-dig-into-a-process) 
-  - [monitor a process](#to-monitor-a-process) 
+  - [monitor a process](#to-monitor-a-process)
+- [CLI reference](#cli-reference)
 - [Background](#background) on namespaces and cgroups
 
 ## Install
