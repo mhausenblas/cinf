@@ -32,123 +32,75 @@ Note that the package docs are also available [online](https://godoc.org/github.
 
 ## Use
 
+The following sections show basic usage. For a complete end-to-end usage, see the [walkthrough](walkthrough.md).
+
+Note that if you want to see detailed debug messages, you can do that via a `DEBUG` environment variable, like so: `sudo DEBUG=true cinf`.
+
 ### To see all namespaces
 
-To list all available namespaces and a summary of how many processes are in them along with the users and the top-level command line executed, simply do the following:
+To list all available namespaces and a summary of how many processes are in them along with the user IDs and the top-level command line executed, simply do the following:
 
     $ sudo cinf
     
-     NAMESPACE   TYPE  NPROCS  USER                      CMD
-     
-     4026532295  ipc   1       1000                      sleep10000
-     4026532195  ipc   2       0,104                     nginx: master proces
-     4026532393  mnt   1       0                         md5sum/dev/urandom
-     4026531840  mnt   99      0,1,101,102,106,1000      /sbin/init
-     4026531839  ipc   100     0,1,101,102,106,1000      /sbin/init
-     4026531837  user  104     0,1,101,102,104,106,1000  /sbin/init
-     4026532293  mnt   1       1000                      sleep10000
-     4026532193  mnt   2       0,104                     nginx: master proces
-     4026532194  uts   2       0,104                     nginx: master proces
-     4026532396  pid   1       0                         md5sum/dev/urandom
-     4026531956  net   100     0,1,101,102,106,1000      /sbin/init
-     4026531856  mnt   1       0
-     4026532196  pid   2       0,104                     nginx: master proces
-     4026532198  net   2       0,104                     nginx: master proces
-     4026531838  uts   100     0,1,101,102,106,1000      /sbin/init
-     4026531836  pid   100     0,1,101,102,106,1000      /sbin/init
-     4026532294  uts   1       1000                      sleep10000
-     4026532296  pid   1       1000                      sleep10000
-     4026532298  net   1       1000                      sleep10000
-     4026532394  uts   1       0                         md5sum/dev/urandom
-     4026532395  ipc   1       0                         md5sum/dev/urandom
-     4026532398  net   1       0                         md5sum/dev/urandom
+    NAMESPACE   TYPE  NPROCS  USERS                     CMD
+    
+    4026532396  pid   1       1000                      sleep10000
+    4026532398  net   1       1000                      sleep10000
+    4026531837  user  109     0,1,101,102,104,106,1000  /sbin/init
+    4026532196  pid   2       0,104                     nginx: master proces
+    4026532293  mnt   1       0                         md5sum/dev/urandom
+    4026532298  net   1       0                         md5sum/dev/urandom
+    4026532393  mnt   1       1000                      sleep10000
+    4026532296  pid   1       0                         md5sum/dev/urandom
+    4026531840  mnt   104     0,1,101,102,106,1000      /sbin/init
+    4026531839  ipc   105     0,1,101,102,106,1000      /sbin/init
+    4026531836  pid   105     0,1,101,102,106,1000      /sbin/init
+    4026532193  mnt   2       0,104                     nginx: master proces
+    4026532198  net   2       0,104                     nginx: master proces
+    4026531838  uts   105     0,1,101,102,106,1000      /sbin/init
+    4026532194  uts   2       0,104                     nginx: master proces
+    4026532294  uts   1       0                         md5sum/dev/urandom
+    4026532394  uts   1       1000                      sleep10000
+    4026532395  ipc   1       1000                      sleep10000
+    4026531956  net   105     0,1,101,102,106,1000      /sbin/init
+    4026531856  mnt   1       0
+    4026532195  ipc   2       0,104                     nginx: master proces
+    4026532295  ipc   1       0                         md5sum/dev/urandom
 
 ### To dig into a namespace
 
 Assuming we're interested in more information on namespace `4026532398`, we would do the following:
 
-    $ sudo cinf --namespace 4026532398
-    
-     PID   PPID  NAME    CMD                 NTHREADS  CGROUPS                                                                                   STATE
-     
-     9422  9405  md5sum  md5sum/dev/urandom  1         11:name=systemd:/docker/c35f489277eb6e13842a24ea217a64035ac33b281b127c218b04744155aede26  R (running)
-                                                       10:hugetlb:/docker/c35f489277eb6e13842a24ea217a64035ac33b281b127c218b04744155aede26
-                                                       9:perf_event:/docker/c35f489277eb6e13842a24ea217a64035ac33b281b127c218b04744155aede26
-                                                       8:blkio:/docker/c35f489277eb6e13842a24ea217a64035ac33b281b127c218b04744155aede26
-                                                       7:freezer:/docker/c35f489277eb6e13842a24ea217a64035ac33b281b127c218b04744155aede26
-                                                       6:devices:/docker/c35f489277eb6e13842a24ea217a64035ac33b281b127c218b04744155aede26
-                                                       5:memory:/docker/c35f489277eb6e13842a24ea217a64035ac33b281b127c218b04744155aede26
-                                                       4:cpuacct:/docker/c35f489277eb6e13842a24ea217a64035ac33b281b127c218b04744155aede26
-                                                       3:cpu:/docker/c35f489277eb6e13842a24ea217a64035ac33b281b127c218b04744155aede26
-                                                       2:cpuset:/docker/c35f489277eb6e13842a24ea217a64035ac33b281b127c218b04744155aede26
+    $ sudo cinf --namespace 4026532193
 
 ### To dig into a cgroup
 
-Using namespace `4026532398` from the previous section as starting point, we could now look up the concrete resource consumption of a process in the context of a cgroup. So we take the process with PID `9422` and say we want to verify if the memory limit we set (`-m 100M`, see below) is indeed in place, that is, we're using cgroup hierarchy ID `5` (note that the following output has been edited down to the interesting bits):
+Let's dig into a specific cgroup (with hierarchy ID `3`) of a process (with PID `27681`):
 
-    $ sudo cinf --cgroup 5:9422
-    
-     CONTROLFILE                         VALUE
-     
-     cgroup.clone_children               0
-     memory.failcnt                      0
-     memory.max_usage_in_bytes           1060864
-     memory.move_charge_at_immigrate     0
-     notify_on_release                   0
-     memory.kmem.tcp.usage_in_bytes      0
-     memory.usage_in_bytes               1019904
-     memory.use_hierarchy                0
-     cgroup.procs                        9422
-     memory.kmem.limit_in_bytes          18446744073709551615
-     memory.kmem.max_usage_in_bytes      245760
-     memory.kmem.tcp.limit_in_bytes      18446744073709551615
-     memory.kmem.tcp.max_usage_in_bytes  0
-     tasks                               9422
-     memory.limit_in_bytes               104857600
-     memory.kmem.tcp.failcnt             0
-     memory.oom_control                  oom_kill_disable 0 under_oom 0
-
-Above we can see the maximum memory usage of this Docker container (around 1MB, from `memory.max_usage_in_bytes`) as well as that the limit we asked for is indeed in place (see `memory.limit_in_bytes`).
+    $ sudo cinf --cgroup 27681:3
 
 ### To dig into a process
 
-It is also possible to list the namespaces a specific process is in, let's take again the one with PID `9422` as an example:
+It is also possible to list the namespaces a specific process is in:
 
-    $ sudo cinf --pid 9422
-    
-     NAMESPACE   TYPE
-     
-     4026532393  mnt
-     4026532394  uts
-     4026532395  ipc
-     4026532396  pid
-     4026532398  net
-     4026531837  user
-
-Note that if you want to see detailed debug messages, you can do that via a `DEBUG` environment variable, like so: `sudo DEBUG=true cinf`.
+    $ sudo cinf --pid 27681
 
 ### To monitor a process
 
-NGINX:
+The interactive, `top` like mode of `cinf` is as follows. Let's say we want to monitor the control files `memory.usage_in_bytes`, `cpuacct.usage`, and `blkio.throttle.io_service_bytes` for process with PID `27681`: 
 
-    sudo cinf/cinf --mon 12384:memory.usage_in_bytes,cpuacct.stat,blkio.throttle.io_serviced,blkio.throttle.io_service_bytes
+    $ sudo cinf --mon 27681:memory.usage_in_bytes,cpuacct.usage,blkio.throttle.io_service_bytes
 
-md5sum/dev/urandom:
-
-    sudo cinf/cinf --mon 9422:memory.limit_in_bytes,memory.max_usage_in_bytes,memory.usage_in_bytes,cpuacct.stat,cpu.shares
-
-sleep:
-
-    sudo cinf/cinf --mon 8363:memory.usage_in_bytes,cpuacct.stat
-
+Note that a more detailed usage description is available via the [walkthrough](walkthrough.md).
 
 ### CLI reference
 
 There are three arguments you can provide to `cinf`, to dig into specific aspects of a namespace, cgroup, or process:
 
 - `--namespace $NAMESPACE_ID` … List details about namespace with provided ID.
-- `--cgroup $CGROUP_HIERARCHY:$PID` … List details of a cgroup a process belongs to.
+- `--cgroup $PID:$CGROUP_HIERARCHY_ID` … List details of a cgroup a process belongs to.
 - `--pid $PID` … List namespaces the process with provided process ID is in.
+- `--mon $PID:$CF1,$CF2,…` … Monitor process with provided process ID and the control files specified.
 
 The meaning of the output columns is as follows:
 
@@ -158,71 +110,28 @@ The meaning of the output columns is as follows:
   - `NPROCS` … number of processes in the namespace
   - `USERS` … user IDs in the namespace
   - `CMD` … command line of the root process
-- Detailed namespace view (`-namespace`):
+- Detailed namespace view (`--namespace`):
   - `PID` … process ID
   - `PPID` … process ID of parent
   - `NAME` … process name
   - `CMD` … process command line
-  -  `NTHREADS`… number of threads
+  - `NTHREADS`… number of threads
   - `CGROUPS` … summary of the attached cgroups
   - `STATE` … process state
-- Detailed cgroups view (`-cgroup`):
+- Detailed cgroups view (`--cgroup`):
   - `CONTROLFILE` … the name of the control file, see also [cgroup man pages](#reading-material) below
   - `VALUE` … the content of the control file
-- Detailed process view (`-pid`):
+- Detailed process view (`--pid`):
   - `NAMESPACE` … the namespace ID
   - `TYPE` … the type of namespace
-
-### Walkthrough
-
-For above outcomes I've used the following setup:
-
-    $ cat /etc/*-release
-    DISTRIB_ID=Ubuntu
-    DISTRIB_RELEASE=14.04
-    DISTRIB_CODENAME=trusty
-    DISTRIB_DESCRIPTION="Ubuntu 14.04.2 LTS"
-    NAME="Ubuntu"
-    VERSION="14.04.2 LTS, Trusty Tahr"
-    ID=ubuntu
-    ID_LIKE=debian
-    PRETTY_NAME="Ubuntu 14.04.2 LTS"
-    VERSION_ID="14.04"
-    HOME_URL="http://www.ubuntu.com/"
-    SUPPORT_URL="http://help.ubuntu.com/"
-    BUG_REPORT_URL="http://bugs.launchpad.net/ubuntu/"
-
-First, I launched three Docker containers (long-running, daemonized):
-
-    $ sudo docker run -d -P nginx
-    $ sudo docker run -m 100M -d busybox md5sum /dev/urandom
-    $ sudo docker run --user=1000 -d busybox sleep 10000
-
-Resulting in the following Docker process listing:
-
-    $ sudo docker ps
-    CONTAINER ID        IMAGE               COMMAND                  CREATED             STATUS              PORTS                                           NAMES
-    4121c6474b95        busybox             "sleep 1000"             32 seconds ago      Up 31 seconds                                                       reverent_euclid
-    4c3ed0a58889        busybox             "md5sum /dev/urandom"    21 minutes ago      Up 21 minutes                                                       berserk_northcutt
-    31d63b4c12db        nginx               "nginx -g 'daemon off"   15 hours ago        Up 15 hours         0.0.0.0:32769->80/tcp, 0.0.0.0:32768->443/tcp   stoic_pasteur
-
-As well as (note: edited down to the important bits) the general Linux process listing:
-
-    $ ps faux
-    USER       PID %CPU %MEM    VSZ   RSS TTY      STAT START   TIME COMMAND
-    root         1  0.0  0.2  33636  2960 ?        Ss   Oct17   0:00 /sbin/init
-    ...
-    root     12972  0.0  3.9 757236 40704 ?        Ssl  01:55   0:18 /usr/bin/dockerd --raw-logs
-    root     12981  0.0  0.9 299096  9384 ?        Ssl  01:55   0:01  \_ docker-containerd -l unix:///var/run/docker/libcontainerd/docker-containerd.sock --shim docker-containerd-shi
-    root     13850  0.0  0.4 199036  4180 ?        Sl   01:58   0:00      \_ docker-containerd-shim 2f86cbc34a4d823be149935fa9a6dc176d161cebc719c60c7f95986c62ea7032 /var/run/docker/l
-    root     13867  0.0  0.2  31752  2884 ?        Ss   01:58   0:00      |   \_ nginx: master process nginx -g daemon off;
-    sshd     13889  0.0  0.1  32144  1664 ?        S    01:58   0:00      |       \_ nginx: worker process
-    root     17642  0.0  0.4 199036  4188 ?        Sl   11:54   0:00      \_ docker-containerd-shim 4c3ed0a58889f772a5f8791528f69e78b8eeccfdcce420192b2e056f609e0b08 /var/run/docker/l
-    root     17661 99.2  0.0   1172     4 ?        Rs   11:54  23:37      |   \_ md5sum /dev/urandom
-    root     18340  0.0  0.4 199036  4144 ?        Sl   12:16   0:00      \_ docker-containerd-shim 4121c6474b951338b01833f90e9c3b20cc13144f132cf3534b088dc09262112b /var/run/docker/l
-    vagrant  18353  0.0  0.0   1164     4 ?        Ss   12:16   0:00          \_ sleep 1000
-
-Above you can see the three Docker container running with PIDs `13889`, `17661`, and `18353`. To simulate load for the NGINX container I simply use `while [ true ] ; do  curl localhost:32769 ; sleep .1 ; done`.
+- Monitor process view (`--mon`):
+  - `PID` … process ID
+  - `PPID` … process ID of parent
+  - `UIDS` … real, effective, saved set, filesystem user ID
+  - `STATE` … process state
+  - `NAMESPACE` … the IDs of the namespaces the process is in  
+  - `CONTROLFILE` … the name of the control file, see also [cgroup man pages](#reading-material) below
+  - `VALUE` … the content of the control file
 
 ## Background
 

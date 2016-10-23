@@ -150,6 +150,7 @@ func status(pid string) (*Process, error) {
 				case "Threads":
 					p.Threads = v
 				case "Uid":
+					//      real, effective, saved set, filesystem
 					// Uid:	1000	1000	1000	1000
 					p.Uids = v
 				}
