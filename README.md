@@ -185,10 +185,10 @@ First, I launched three Docker containers (long-running, daemonized):
 Resulting in the following Docker process listing:
 
     $ sudo docker ps
-    CONTAINER ID        IMAGE               COMMAND                  CREATED             STATUS              PORTS               NAMES
-    4121c6474b95        busybox             "sleep 1000"             32 seconds ago      Up 31 seconds                           reverent_euclid
-    4c3ed0a58889        busybox             "md5sum /dev/urandom"    21 minutes ago      Up 21 minutes                           berserk_northcutt
-    2f86cbc34a4d        nginx               "nginx -g 'daemon off"   21 hours ago        Up 21 hours         80/tcp, 443/tcp     amazing_kare
+    CONTAINER ID        IMAGE               COMMAND                  CREATED             STATUS              PORTS                                           NAMES
+    4121c6474b95        busybox             "sleep 1000"             32 seconds ago      Up 31 seconds                                                       reverent_euclid
+    4c3ed0a58889        busybox             "md5sum /dev/urandom"    21 minutes ago      Up 21 minutes                                                       berserk_northcutt
+    31d63b4c12db        nginx               "nginx -g 'daemon off"   15 hours ago        Up 15 hours         0.0.0.0:32769->80/tcp, 0.0.0.0:32768->443/tcp   stoic_pasteur
 
 As well as (note: edited down to the important bits) the general Linux process listing:
 
@@ -206,7 +206,7 @@ As well as (note: edited down to the important bits) the general Linux process l
     root     18340  0.0  0.4 199036  4144 ?        Sl   12:16   0:00      \_ docker-containerd-shim 4121c6474b951338b01833f90e9c3b20cc13144f132cf3534b088dc09262112b /var/run/docker/l
     vagrant  18353  0.0  0.0   1164     4 ?        Ss   12:16   0:00          \_ sleep 1000
 
-Above you can see the three Docker container running with PIDs `13889`, `17661`, and `18353`.
+Above you can see the three Docker container running with PIDs `13889`, `17661`, and `18353`. To simulate load for the NGINX container I simply use `while [ true ] ; do  curl localhost:32769 ; sleep .1 ; done`.
 
 ## Background
 
@@ -218,7 +218,7 @@ Above you can see the three Docker container running with PIDs `13889`, `17661`,
 - PID/`CLONE_NEWPID` (since Linux 2.6.24) via `/proc/$PID/status -> NSpid, NSpgid`: process ID number space isolation: PID inside/PID outside the namespace; PID namespaces can be nested
 - Network/`CLONE_NEWNET` (completed in Linux 2.6.29) via `ip netns list`, `/proc/net`, `/sys/class/net`: network system resources: network devices, IP addresses, IP routing tables, port numbers, etc.
 - User/`CLONE_NEWUSER` (completed in Linux 3.8) via `id`, `/proc/$PID/uid_map`, `/proc/$PID/gid_map`: user and group ID number space isolation. UID+GIDs inside/outside the namespace
-- Cgroup/`CLONE_NEWCGROUP` (since Linux 4.6) via `/proc/$PID/cgroup`, `/sys/fs/cgroup/`: cgroups
+- Cgroup/`CLONE_NEWCGROUP` (since Linux 4.6) via `/sys/fs/cgroup/`, `/proc/cgroups`, `/proc/$PID/cgroup`: cgroups
 - To list all namespaces of a process: `ls -l /proc/$PID/ns`
 
 ### Tooling and libs

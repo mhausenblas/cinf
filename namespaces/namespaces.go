@@ -50,6 +50,7 @@ var (
 	NS              []NSTYPE
 	namespaces      map[Namespace][]Process
 	processes       map[string][]Namespace
+	availablecgs    map[string]string
 	MAX_COMMAND_LEN int
 )
 
@@ -66,6 +67,8 @@ func init() {
 	namespaces = make(map[Namespace][]Process)
 	// for lookups only (PID -> namespaces):
 	processes = make(map[string][]Namespace)
+	// maps cgroup names to hierarchy IDs:
+	availablecgs = make(map[string]string)
 	MAX_COMMAND_LEN = 20
 }
 
@@ -76,6 +79,27 @@ func contains(s int, slist []int) bool {
 		}
 	}
 	return false
+}
+
+// initcgs reads out available cgroups to map
+// from cgroup name to hierarchy ID
+func initcgs() {
+	acgs := "/proc/cgroups"
+	availablecgs = map[string]string{}
+	if c, err := ioutil.ReadFile(acgs); err == nil {
+		lines := strings.Split(string(c), "\n")
+		for _, l := range lines {
+			if l != "" && !strings.Contains(l, "#") { // ignore header
+				name := strings.Fields(l)[0]
+				id := strings.Fields(l)[1]
+				enabled := strings.Fields(l)[3]
+				if enabled == "1" {
+					availablecgs[name] = id
+				}
+			}
+		}
+	}
+	debug(fmt.Sprintf("available cgroups: %v", availablecgs))
 }
 
 // resolve populates the specified namespace of a process.
@@ -221,10 +245,11 @@ func Gather() {
 			}
 		}
 	}
+	initcgs()
 }
 
 // LookupCG displays details about a cgroup a process belongs to.
-// Note that cgofp is expected to be in the format PID:CGROUP_HIERARCHY
+// Note that cgspec is expected to be in the format PID:CGROUP_HIERARCHY
 // with allowed values for CGROUP_HIERARCHY being the cgroups v1 hierarchy
 // values as found in /proc/groups - see http://man7.org/linux/man-pages/man7/cgroups.7.html
 // for more infos.
@@ -233,7 +258,7 @@ func Gather() {
 //  namespaces.LookupCG("1000:2")
 func LookupCG(cgspec string) {
 	rp := regexp.MustCompile("([0-9])+:([0-9])+")
-	if rp.MatchString(cgspec) { // the provided argument matches the expected format
+	if rp.MatchString(cgspec) { // the provided argument matches expected format
 		pid := strings.Split(cgspec, ":")[0]
 		cg := strings.Split(cgspec, ":")[1]
 		debug(fmt.Sprintf("Looking up cgroup %s of process %s", cg, pid))
@@ -315,34 +340,47 @@ func LookupNS(targetns string) {
 	ptable.Render()
 }
 
+// MonitorPID monitors control files values of cgroup a process belongs to.
+// Note that monspec is expected to be in the format PID:CF1,CF2,…
+// with allowed values for CFx being the cgroups control files as described
+// in http://man7.org/linux/man-pages/man7/cgroups.7.html
+//
+// Example:
+//  namespaces.MonitorPID("1000:memory.usage_in_bytes,memory.max_usage_in_bytes")
 func MonitorPID(monspec string) {
-	rp := regexp.MustCompile("([0-9])+:([0-9])+:*")
-	if rp.MatchString(monspec) { // the provided argument matches the expected format
+	rp := regexp.MustCompile("([0-9])+:*")
+	if rp.MatchString(monspec) { // the provided argument matches expected format
 		pid := strings.Split(monspec, ":")[0]
-		cg := strings.Split(monspec, ":")[1]
-		colspec := strings.Split(monspec, ":")[2]
+		colspec := strings.Split(monspec, ":")[1]
 		columns := strings.Split(colspec, ",")
-		debug(fmt.Sprintf("Monitoring process %s for cgroup %s with column spec %s", pid, cg, colspec))
+		cmd := "???"
+		debug(fmt.Sprintf("Monitoring process %s with column spec %s", pid, colspec))
 		tm.Clear()
 		for {
 			tm.MoveCursor(1, 1)
-			tm.Printf("cinf - monitoring process %s", pid)
+			tm.Printf("cinf - monitoring process PID: %s CMD: %s", pid, cmd)
 			tm.MoveCursor(2, 1)
-			if cm, err := usage(pid, cg); err == nil {
-				for cf, v := range cm {
-					for _, c := range columns {
-						if cf == c {
-							tm.Printf("%s = %v\n", cf, v)
+			row := 3
+			for _, c := range columns { // each column (= CF) in the spec
+				// map CF -> cgroup -> cgroup hierarchy ID:
+				cgname := strings.Split(string(c), ".")[0]
+				cgid := availablecgs[cgname]
+				if cm, err := usage(pid, cgid); err == nil {
+					for cf, v := range cm {
+						if cf == c { // only show selected as per colspec
+							tm.MoveCursor(row, 1)
+							tm.Printf("%s = %v", cf, v)
 						}
 					}
 				}
+				row += 1
 			}
 			tm.Flush()
 			time.Sleep(time.Second)
 		}
 	} else {
-		fmt.Println("Provided argument is not in expected format. It should be PID:CGROUP_HIERARCHY:COLSPEC.")
-		fmt.Println("For example: 1000:2:memory.usage_in_bytes lists details of cgroup with hierarchy ID 2 the process with PID 1000 belongs to using memory.usage_in_bytes.")
+		fmt.Println("Provided argument is not in expected format. It should be PID:CONTROLFILE1,CONTROLFIL2,….")
+		fmt.Println("For example: 1000:memory.usage_in_bytes lists details of memory.usage_in_bytes control file the process with PID 1000 belongs to.")
 	}
 
 }
