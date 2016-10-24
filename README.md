@@ -137,6 +137,13 @@ The meaning of the output columns is as follows:
 
 ## Background
 
+Conceptually the ER diagram for namespaces, cgroups and process (groups) looks as follows:
+
+![cinf mon](doc/n-p-c.png)
+
+Read: a process (or more precise a process group) can be in one or more namespaces and can be controlled by one or more cgroups, where the namespaces provide isolation concerning a certain aspect, such as user IDs, networking stack or mount points and the cgroups allowing to control resource consumption as well as provide accounting information in terms of resource usage. 
+
+
 ### Overview on Linux namespaces and cgroups
 
 - Mount/`CLONE_NEWNS` (since Linux 2.4.19) via `mount`, `/proc/$PID/mounts`: filesystem mount points
