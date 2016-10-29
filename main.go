@@ -21,7 +21,7 @@ const (
    \::/  /       /:/  /   \:\__\       \:\__\    
     \/__/        \/__/     \/__/        \/__/   
 `
-	VERSION = "0.4.0"
+	VERSION = "0.5.0"
 )
 
 var (
@@ -31,6 +31,7 @@ var (
 	targetpid string
 	cgspec    string
 	monspec   string
+	logspec   string
 )
 
 func debug(m string) {
@@ -51,6 +52,7 @@ func init() {
 	flag.StringVar(&targetpid, "pid", "", "List namespaces the process with provided process ID is in.")
 	flag.StringVar(&cgspec, "cgroup", "", "List details of a cgroup a process belongs to. Format is PID:CGROUP_HIERARCHY, for example 1000:2.")
 	flag.StringVar(&monspec, "mon", "", "Monitor process with provided process ID/control file(s). Format is PID:CF1,CF2,… for example 1000:memory.usage_in_bytes")
+	flag.StringVar(&logspec, "log", "", "Continuously output namespace and cgroups metrics. Format is OUTPUT_DEF:INTERVAL, for example JSON:0.2 or SYSLOG:5")
 
 	flag.Usage = func() {
 		fmt.Printf("Usage: %s [args]\n\n", os.Args[0])
@@ -85,6 +87,8 @@ func main() {
 		namespaces.LookupCG(cgspec)
 	case monspec != "": // we have a --mon flag
 		namespaces.MonitorPID(monspec)
+	case logspec != "": // we have a --log flag
+		namespaces.DoMetrics(logspec)
 	default: // list all active namespaces
 		namespaces.Showall()
 	}

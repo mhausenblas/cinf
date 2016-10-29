@@ -399,7 +399,13 @@ func MonitorPID(monspec string) {
 		fmt.Println("Provided argument is not in expected format. It should be PID:CONTROLFILE1,CONTROLFIL2,….")
 		fmt.Println("For example: 1000:memory.usage_in_bytes lists details of memory.usage_in_bytes control file the process with PID 1000 belongs to.")
 	}
+}
 
+func DoMetrics(logspec string) {
+	// for {
+	// 	tm.Printf("")
+	// 	time.Sleep(time.Second)
+	// }
 }
 
 // Showall displays details about all active namespaces.
