@@ -401,11 +401,26 @@ func MonitorPID(monspec string) {
 	}
 }
 
+// DoMetrics continuously outputs namespace and cgroups metrics.
+// Note that logspec is expected to be in the format OUTPUT_DEF:INTERVAL,
+// with allowed values for OUTPUT_DEF being JSON or SYSLOG and INTERVAL
+// specified in milliseconds.
+//
+// Example:
+//  namespaces.DoMetrics("JSON:1000")
 func DoMetrics(logspec string) {
-	// for {
-	// 	tm.Printf("")
-	// 	time.Sleep(time.Second)
-	// }
+	rp := regexp.MustCompile("[:ascii:]*:([0-9])+")
+	if rp.MatchString(logspec) { // the provided argument matches expected format
+		od := strings.Split(logspec, ":")[0]
+		interval, _ := strconv.Atoi(strings.Split(logspec, ":")[1])
+		for {
+			fmt.Println("outputting to", od)
+			time.Sleep(time.Duration(interval) * time.Millisecond)
+		}
+	} else {
+		fmt.Println("Provided argument is not in expected format. It should be OUTPUT_DEF:INTERVAL")
+		fmt.Println("For example: JSON:1000 will output all namespace and cgroups metrics in JSON every second.")
+	}
 }
 
 // Showall displays details about all active namespaces.
