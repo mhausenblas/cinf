@@ -1,6 +1,8 @@
 package namespaces
 
 import (
+	"bytes"
+	"encoding/json"
 	"errors"
 	"fmt"
 	tm "github.com/buger/goterm"
@@ -24,14 +26,14 @@ type Namespace struct {
 }
 
 type Process struct {
-	Pid     string
-	PPid    string
-	Name    string
-	State   string
-	Threads string
-	Cgroups string
-	Uids    string
-	Command string
+	Pid     string `json:"pid"`
+	PPid    string `json:"ppid"`
+	Name    string `json:"name"`
+	State   string `json:"state"`
+	Threads string `json:"nthreads"`
+	Cgroups string `json:"cgroups"`
+	Uids    string `json:"uids"`
+	Command string `json:"cmd"`
 }
 
 // The supported namespaces
@@ -403,23 +405,31 @@ func MonitorPID(monspec string) {
 
 // DoMetrics continuously outputs namespace and cgroups metrics.
 // Note that logspec is expected to be in the format OUTPUT_DEF:INTERVAL,
-// with allowed values for OUTPUT_DEF being JSON or SYSLOG and INTERVAL
+// with allowed values for OUTPUT_DEF being RAW or HTTP and INTERVAL
 // specified in milliseconds.
 //
 // Example:
-//  namespaces.DoMetrics("JSON:1000")
+//  namespaces.DoMetrics("RAW:1000")
 func DoMetrics(logspec string) {
 	rp := regexp.MustCompile("[:ascii:]*:([0-9])+")
 	if rp.MatchString(logspec) { // the provided argument matches expected format
 		od := strings.Split(logspec, ":")[0]
 		interval, _ := strconv.Atoi(strings.Split(logspec, ":")[1])
+		var out bytes.Buffer
 		for {
 			fmt.Println("outputting to", od)
+			for _, pl := range namespaces {
+				for _, p := range pl {
+					ep, _ := json.Marshal(p)
+					json.Indent(&out, ep, "", "\t")
+					out.WriteTo(os.Stdout)
+				}
+			}
 			time.Sleep(time.Duration(interval) * time.Millisecond)
 		}
 	} else {
 		fmt.Println("Provided argument is not in expected format. It should be OUTPUT_DEF:INTERVAL")
-		fmt.Println("For example: JSON:1000 will output all namespace and cgroups metrics in JSON every second.")
+		fmt.Println("For example: RAW:1000 will output all namespace and cgroups metrics to stdout, every second.")
 	}
 }
 

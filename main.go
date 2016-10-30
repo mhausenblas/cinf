@@ -52,7 +52,7 @@ func init() {
 	flag.StringVar(&targetpid, "pid", "", "List namespaces the process with provided process ID is in.")
 	flag.StringVar(&cgspec, "cgroup", "", "List details of a cgroup a process belongs to. Format is PID:CGROUP_HIERARCHY, for example 1000:2.")
 	flag.StringVar(&monspec, "mon", "", "Monitor process with provided process ID/control file(s). Format is PID:CF1,CF2,… for example 1000:memory.usage_in_bytes")
-	flag.StringVar(&logspec, "log", "", "Continuously output namespace and cgroups metrics. Format is OUTPUT_DEF:INTERVAL, for example JSON:200 or SYSLOG:3000")
+	flag.StringVar(&logspec, "log", "", "Continuously output namespace and cgroups metrics. Format is OUTPUT_DEF:INTERVAL, for example RAW:200 or HTTP:3000")
 
 	flag.Usage = func() {
 		fmt.Printf("Usage: %s [args]\n\n", os.Args[0])
