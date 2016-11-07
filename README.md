@@ -139,48 +139,7 @@ The meaning of the output columns is as follows:
 
 ## Background
 
-Conceptually the ER diagram for namespaces, cgroups and process (groups) looks as follows:
+I developed `cinf` because existing tools like `systemd-cgtop` or `lsns` didn't do what I wanted. 
+Also, I needed it for educational purposes (like training sessions, etc.). Note that the output format `cinf` uses is modelled after [lsns](http://karelzak.blogspot.ie/2015/12/lsns8-new-command-to-list-linux.html), so kudos to Karel for the inspiration.
 
-![cinf mon](doc/n-p-c.png)
-
-Read: a process (or more precise a process group) can be in one or more namespaces and can be controlled by one or more cgroups, where the namespaces provide isolation concerning a certain aspect, such as user IDs, networking stack or mount points and the cgroups allowing to control resource consumption as well as provide accounting information in terms of resource usage. 
-
-
-### Overview on Linux namespaces and cgroups
-
-- Mount/`CLONE_NEWNS` (since Linux 2.4.19) via `mount`, `/proc/$PID/mounts`: filesystem mount points
-- UTS/`CLONE_NEWUTS` (since Linux 2.6.19) via `uname -n`, `hostname -f` : nodename/hostname and (NIS) domain name
-- IPC/`CLONE_NEWIPC` (since Linux 2.6.19) via `/proc/sys/fs/mqueue`, `/proc/sys/kernel`, `/proc/sysvipc`: interprocess communication resource isolation: System V IPC objects, POSIX message queues
-- PID/`CLONE_NEWPID` (since Linux 2.6.24) via `/proc/$PID/status -> NSpid, NSpgid`: process ID number space isolation: PID inside/PID outside the namespace; PID namespaces can be nested
-- Network/`CLONE_NEWNET` (completed in Linux 2.6.29) via `ip netns list`, `/proc/net`, `/sys/class/net`: network system resources: network devices, IP addresses, IP routing tables, port numbers, etc.
-- User/`CLONE_NEWUSER` (completed in Linux 3.8) via `id`, `/proc/$PID/uid_map`, `/proc/$PID/gid_map`: user and group ID number space isolation. UID+GIDs inside/outside the namespace
-- Cgroup/`CLONE_NEWCGROUP` (since Linux 4.6) via `/sys/fs/cgroup/`, `/proc/cgroups`, `/proc/$PID/cgroup`: cgroups
-- To list all namespaces of a process: `ls -l /proc/$PID/ns`
-
-### Tooling and libs
-
-- [lsns](http://karelzak.blogspot.ie/2015/12/lsns8-new-command-to-list-linux.html) via [karelzak/util-linux](https://github.com/karelzak/util-linux)
-- [c9s/goprocinfo](https://github.com/c9s/goprocinfo)
-- [shirou/gopsutil](https://github.com/shirou/gopsutil/)
-- [yadutaf/ctop](https://github.com/yadutaf/ctop)
-
-Note that the output format `cinf` uses is modelled after `lsns`, so kudos to Karel for the inspiration.
-
-### Reading material
-
-- [man namespaces](http://man7.org/linux/man-pages/man7/namespaces.7.html)
-- [man cgroups](http://man7.org/linux/man-pages/man7/cgroups.7.html)
-  - [cpuset](https://www.kernel.org/doc/Documentation/cgroup-v1/cpusets.txt)
-  - [cpu](https://www.kernel.org/doc/Documentation/scheduler/sched-bwc.txt)
-  - [cpuacct](https://www.kernel.org/doc/Documentation/cgroup-v1/cpuacct.txt)
-  - [memory](https://www.kernel.org/doc/Documentation/cgroup-v1/memory.txt)
-  - [devices](https://www.kernel.org/doc/Documentation/cgroup-v1/devices.txt)
-  - [blkio](https://www.kernel.org/doc/Documentation/cgroup-v1/blkio-controller.txt)
-  - perf_event
-  - [net_cls](https://www.kernel.org/doc/Documentation/cgroup-v1/net_cls.txt)
-- [man lsns](http://man7.org/linux/man-pages/man8/lsns.8.html)
-- [Hands on Linux sandbox with namespaces and cgroups](https://blogs.rdoproject.org/7761/hands-on-linux-sandbox-with-namespaces-and-cgroups), Tristan Cacqueray (2015)
-- [Namespaces in operation, part 1: namespaces overview](https://lwn.net/Articles/531114/), lwn.net (2013)
-- [Netdev 1.1 - Namespaces and CGroups, the basis of Linux containers](https://www.youtube.com/watch?v=zMJD8PJKoYQ), Rami Rosen, video (2016)
-- [Resource management: Linux kernel Namespaces and cgroups](http://www.haifux.org/lectures/299/netLec7.pdf), Rami Rosen (2013)
-- [THE `/proc` FILESYSTEM](https://www.mjmwired.net/kernel/Documentation/filesystems/proc.txt),  Terrehon Bowden et al (1999 - 2009)
+If you want to learn more about container building blocks such as namespaces and cgroups, check out [containerz.info](http://containerz.info/).
