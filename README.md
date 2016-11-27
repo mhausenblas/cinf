@@ -26,13 +26,15 @@ Simply download the Linux binary:
 
 Or build from source (note that you'll get the latest, experimental version via this method):
 
-    $ go get github.com/olekukonko/tablewriter
     $ go get github.com/mhausenblas/cinf
-    $ go get github.com/buger/goterm
     $ GOOS=linux go build
     $ godoc -http=":6060"
 
-Note that the package docs are also available [online](https://godoc.org/github.com/mhausenblas/cinf/namespaces).
+The `cinf` package docs are also available [online](https://godoc.org/github.com/mhausenblas/cinf/namespaces).
+
+If you want to give `cinf` a try but don't have a machine at hand to install it, consider using [dply](https://dply.co):
+
+[![Try out cinf on dply for free](https://dply.co/b.svg)](https://dply.co/b/1PjZh3V7) 
 
 ## Use
 
