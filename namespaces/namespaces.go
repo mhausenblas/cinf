@@ -16,6 +16,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"syscall"
+	"unsafe"
 )
 
 type NSTYPE string
@@ -71,7 +73,29 @@ func init() {
 	processes = make(map[string][]Namespace)
 	// maps cgroup names to hierarchy IDs:
 	availablecgs = make(map[string]string)
-	MAX_COMMAND_LEN = 20
+	MAX_COMMAND_LEN = int(getWidth()) -70
+}
+
+// Get terminal width, thanks to:
+// https://stackoverflow.com/a/16576712/9979477
+func getWidth() uint {
+        type winsize struct {
+                Row    uint16
+                Col    uint16
+                Xpixel uint16
+                Ypixel uint16
+        }
+
+        ws := &winsize{}
+        retCode, _, errno := syscall.Syscall(syscall.SYS_IOCTL,
+        uintptr(syscall.Stdin),
+        uintptr(syscall.TIOCGWINSZ),
+        uintptr(unsafe.Pointer(ws)))
+
+    if int(retCode) == -1 {
+        panic(errno)
+    }
+    return uint(ws.Col)
 }
 
 func contains(s int, slist []int) bool {
@@ -102,6 +126,16 @@ func initcgs() {
 		}
 	}
 	debug(fmt.Sprintf("available cgroups: %v", availablecgs))
+}
+
+// Turn zero bytes in given slice into ASCII spaces
+func zeros_to_spaces(arr []byte) []byte{
+    for idx, value := range arr {
+        if value == 0x00 {
+                arr[idx] = 0x20
+                }
+        }
+    return arr
 }
 
 // resolve populates the specified namespace of a process.
@@ -166,7 +200,7 @@ func status(pid string) (*Process, error) {
 		// try to read out process' command:
 		cmdfile := filepath.Join("/proc", pid, "cmdline")
 		if cmd, cerr := ioutil.ReadFile(cmdfile); cerr == nil {
-			p.Command = strings.TrimSpace(string(cmd))
+			p.Command = strings.TrimSpace(string(zeros_to_spaces(cmd)))
 		}
 		return &p, nil
 	} else {
@@ -444,6 +478,7 @@ func Showall() {
 	ntable.SetRowSeparator("")
 	ntable.SetAlignment(tw.ALIGN_LEFT)
 	ntable.SetHeaderAlignment(tw.ALIGN_LEFT)
+	ntable.SetAutoWrapText(false)
 	debug("\n\n=== SUMMARY")
 	for n, pl := range namespaces {
 		debug(fmt.Sprintf("namespace %s: %v\n", n.Id, pl))
