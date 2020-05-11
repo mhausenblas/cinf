@@ -31,12 +31,12 @@ curl -s -L https://github.com/mhausenblas/cinf/releases/latest/download/cinf_lin
 Or build from source (note that you'll get the latest, experimental version via this method):
 
 ```sh
-    $ go get github.com/mhausenblas/cinf
-    $ GOOS=linux go build
-    $ godoc -http=":6060"
+go get github.com/mhausenblas/cinf
+
+GOOS=linux go build
 ```
 
-The `cinf` package docs are also available [online](https://godoc.org/github.com/mhausenblas/cinf/namespaces).
+The `cinf` package docs are available [online](https://godoc.org/github.com/mhausenblas/cinf/namespaces).
 
 
 ## Use
