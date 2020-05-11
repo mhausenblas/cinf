@@ -3,9 +3,10 @@ package main
 import (
 	"flag"
 	"fmt"
-	"github.com/mhausenblas/cinf/namespaces"
 	"os"
 	"strconv"
+
+	"github.com/mhausenblas/cinf/namespaces"
 )
 
 const (
@@ -21,17 +22,17 @@ const (
    \::/  /       /:/  /   \:\__\       \:\__\    
     \/__/        \/__/     \/__/        \/__/   
 `
-	VERSION = "0.5.0"
 )
 
 var (
-	DEBUG     bool
-	version   bool
-	targetns  string
-	targetpid string
-	cgspec    string
-	monspec   string
-	logspec   string
+	DEBUG       bool
+	version     string
+	showversion bool
+	targetns    string
+	targetpid   string
+	cgspec      string
+	monspec     string
+	logspec     string
 )
 
 func debug(m string) {
@@ -42,12 +43,12 @@ func debug(m string) {
 
 func about() {
 	fmt.Printf(BANNER)
-	fmt.Printf("\nThis is cinf in version %s\n", VERSION)
+	fmt.Printf("\nThis is cinf in version %s\n", version)
 	fmt.Print("See also https://github.com/mhausenblas/cinf\n\n")
 }
 
 func init() {
-	flag.BoolVar(&version, "version", false, "List info about cinf, including its version.")
+	flag.BoolVar(&showversion, "version", false, "List info about cinf, including its version.")
 	flag.StringVar(&targetns, "namespace", "", "List details about namespace with provided ID. You can get the namespace ID by running cinf without arguments.")
 	flag.StringVar(&targetpid, "pid", "", "List namespaces the process with provided process ID is in.")
 	flag.StringVar(&cgspec, "cgroup", "", "List details of a cgroup a process belongs to. Format is PID:CGROUP_HIERARCHY, for example 1000:2.")
@@ -72,7 +73,7 @@ func init() {
 func main() {
 	namespaces.DEBUG = DEBUG
 	debug("=== SHOWING DEBUG MESSAGES ===")
-	if version {
+	if showversion {
 		about()
 		os.Exit(0)
 	}
