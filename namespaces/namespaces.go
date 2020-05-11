@@ -480,7 +480,19 @@ func Showall() {
 	ntable.SetHeaderAlignment(tw.ALIGN_LEFT)
 	ntable.SetAutoWrapText(false)
 	debug("\n\n=== SUMMARY")
-	for n, pl := range namespaces {
+
+	keys := make([]Namespace, 0, len(namespaces))
+		for k := range namespaces {
+		keys = append(keys, k)
+		}
+
+	sort.Slice(keys, func(i, j int) bool {
+		return keys[i].Id < keys[j].Id
+		})
+
+	for _, n := range keys {
+		pl := namespaces[n]
+
 		debug(fmt.Sprintf("namespace %s: %v\n", n.Id, pl))
 		u := ""
 		suids := make([]int, 0)
