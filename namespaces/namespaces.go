@@ -406,6 +406,12 @@ func MonitorPID(monspec string) {
 		colspec := strings.Split(monspec, ":")[1]
 		columns := strings.Split(colspec, ",")
 		p, _ := status(pid)
+
+		if p == nil {
+			fmt.Fprintln(os.Stderr, "PID not found.")
+			os.Exit(1)
+		}
+
 		debug(fmt.Sprintf("Monitoring process %s with column spec %s", pid, colspec))
 		tm.Clear()
 		for {
