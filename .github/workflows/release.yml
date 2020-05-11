@@ -1,0 +1,17 @@
+name: release
+
+on:
+  push:
+    tags: ["*"]
+  
+jobs:
+  create-release:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v1
+    - name: Create a release
+      run: make release
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
