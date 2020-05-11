@@ -1,0 +1,21 @@
+project_name: cinf
+release:
+  github:
+    owner: mhausenblas
+    name: cinf
+builds:
+  - id: cinf
+    goos:
+    - linux
+    goarch:
+    - amd64
+    - arm64
+    env:
+      - CGO_ENABLED=0
+      - GO111MODULE=on
+    main: .
+archives:
+  - id: cinf
+    builds:
+    - cinf
+    name_template: "{{ .ProjectName }}_{{ .Os }}_{{ .Arch }}"
