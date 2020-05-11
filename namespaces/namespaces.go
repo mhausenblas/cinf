@@ -231,6 +231,12 @@ func lprocess(pid string) *Process {
 func usage(pid string, cg string) (map[string]string, error) {
 	base := "/sys/fs/cgroup/"
 	p := lprocess(pid)
+
+	if p == nil {
+		fmt.Fprintln(os.Stderr, "PID not found.")
+		os.Exit(1)
+	}
+
 	cgroups := p.Cgroups
 	lines := strings.Split(cgroups, "\n")
 	for _, l := range lines {
