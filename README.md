@@ -20,15 +20,21 @@ Contents:
 
 Simply download the Linux binary:
 
-    $ curl -s -L https://github.com/mhausenblas/cinf/releases/download/v0.4.0-alpha/cinf -o cinf
-    $ sudo mv cinf /usr/local/bin
-    $ sudo chmod +x /usr/local/bin/cinf
+```sh
+curl -s -L https://github.com/mhausenblas/cinf/releases/latest/download/cinf_linux_amd64.tar.gz \
+     -o cinf.tar.gz && \
+     tar xvzf cinf.tar.gz cinf && \
+     mv cinf /usr/local/bin && \
+     rm cinf*
+```
 
 Or build from source (note that you'll get the latest, experimental version via this method):
 
+```sh
     $ go get github.com/mhausenblas/cinf
     $ GOOS=linux go build
     $ godoc -http=":6060"
+```
 
 The `cinf` package docs are also available [online](https://godoc.org/github.com/mhausenblas/cinf/namespaces).
 
